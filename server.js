@@ -1,21 +1,53 @@
+// server.js
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const path = require("path");
 
-// Servidor básico con Express y Socket.IO
-const express = require('express');
 const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+const server = http.createServer(app);
+const io = new Server(server);
 
-const PORT = process.env.PORT || 3000;
+// 1) Ruta ABSOLUTA a /public
+const PUBLIC_DIR = path.join(__dirname, "public");
+app.use(express.static(PUBLIC_DIR));
 
-app.use(express.static('public'));
+// 2) Fallback: si alguien pide "/", devolvé index.html explícitamente
+app.get("/", (_, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, "index.html"));
+});
 
-io.on('connection', (socket) => {
-  console.log('Nuevo jugador conectado:', socket.id);
-  socket.on('disconnect', () => {
-    console.log('Jugador desconectado:', socket.id);
+/* --- tu lógica de juego igual que antes --- */
+
+const jugadores = ["Messi","Cristiano","Maradona","Ronaldinho","Zidane","Iniesta","Xavi","Batistuta","Ronaldo","Tevez"];
+let salas = {};
+
+io.on("connection", (socket) => {
+  socket.on("joinRoom", (room) => {
+    if (!salas[room]) salas[room] = [];
+    salas[room].push(socket.id);
+    socket.join(room);
+    io.to(room).emit("updatePlayers", salas[room].length);
+  });
+
+  socket.on("startGame", (room) => {
+    const players = salas[room];
+    if (!players) return;
+    const impostorIndex = Math.floor(Math.random() * players.length);
+    players.forEach((id, i) => {
+      const word = (i === impostorIndex) ? "IMPOSTOR" : jugadores[Math.floor(Math.random() * jugadores.length)];
+      io.to(id).emit("role", word);
+    });
+  });
+
+  socket.on("disconnect", () => {
+    for (const room in salas) {
+      salas[room] = salas[room].filter((id) => id !== socket.id);
+      io.to(room).emit("updatePlayers", salas[room].length);
+    }
   });
 });
 
-http.listen(PORT, () => {
-  console.log(`Servidor escuchando en puerto ${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+// MUY IMPORTANTE: 0.0.0.0 en Render
+server.listen(PORT, "0.0.0.0", () => console.log(`Servidor en ${PORT}`));
