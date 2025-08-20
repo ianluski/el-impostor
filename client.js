@@ -1,1 +1,4 @@
-console.log('Cliente listo');
+
+// Cliente básico
+const socket = io();
+console.log("Cliente conectado");
