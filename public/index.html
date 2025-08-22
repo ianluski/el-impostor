@@ -1,13 +1,26 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>El Impostor</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-  <h1>Bienvenido a El Impostor</h1>
-  <p>Juego en línea de futbolistas e impostores</p>
-  <script src="/socket.io/socket.io.js"></script>
+  <main class="card">
+    <h1>⚽ El Impostor</h1>
+
+    <div class="row">
+      <input id="room" placeholder="Código de sala (ej: ABCD)" maxlength="8" />
+      <button id="joinBtn">Unirse</button>
+      <button id="startBtn">Iniciar juego</button>
+    </div>
+
+    <p id="status">Jugadores en sala: 0</p>
+    <p id="role">Tu palabra aparecerá aquí</p>
+  </main>
+
   <script src="client.js"></script>
 </body>
 </html>
