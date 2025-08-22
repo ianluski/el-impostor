@@ -44,23 +44,26 @@ io.on("connection", (socket) => {
     socket.join(code);
     io.to(code).emit("updatePlayers", rooms[code].ids.length);
   });
-socket.on("startGame", (code) => {
+socket.on("startGame", ({ code, customPool, filter }) => {
   const room = rooms[code];
   if (!room) return;
-  const ids = room.ids || [];
-  if (ids.length < 3) {
-    // opcional: avisar al host que faltan jugadores
-    io.to(socket.id).emit("updatePlayers", ids.length);
-    return;
-  }
 
-  // 1) Elegimos al impostor
+  const ids = room.ids || [];
+  if (ids.length < 3) return;
+
+  // 1) impostor
   const impostorIndex = Math.floor(Math.random() * ids.length);
 
-  // 2) Elegimos UNA única palabra para todos los demás
-  const secretWord = jugadores[Math.floor(Math.random() * jugadores.length)];
+  // 2) si customPool no viene, tomamos del JSON (con filtro opcional)
+  let secretWord;
+  if (Array.isArray(customPool) && customPool.filter(Boolean).length >= 1) {
+    const cleaned = customPool.map(s => String(s).trim()).filter(Boolean);
+    secretWord = cleaned[Math.floor(Math.random() * cleaned.length)];
+  } else {
+    secretWord = pickRandomFromJson(filter || {});
+  }
 
-  // 3) Enviamos “IMPOSTOR” al impostor y la misma palabra al resto
+  // 3) repartir
   ids.forEach((id, i) => {
     const word = (i === impostorIndex) ? "IMPOSTOR" : secretWord;
     io.to(id).emit("role", word);
@@ -80,3 +83,29 @@ socket.on("startGame", (code) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, "0.0.0.0", () => console.log("Servidor escuchando en", PORT));
+
+const fs = require("fs");
+const path = require("path");
+
+// Carga JSON de jugadores (fallback cuando no hay DB)
+const DATA_PATH = path.join(__dirname, "data", "players.json");
+let PLAYERS_CACHE = [];
+try {
+  const raw = fs.readFileSync(DATA_PATH, "utf8");
+  const parsed = JSON.parse(raw);
+  PLAYERS_CACHE = Array.isArray(parsed.players) ? parsed.players : [];
+  console.log(`Cargados ${PLAYERS_CACHE.length} jugadores desde JSON`);
+} catch (e) {
+  console.warn("No pude cargar data/players.json, seguiré con lista corta.");
+}
+
+// helper para elegir 1 al azar del JSON (con filtros opcionales)
+function pickRandomFromJson(filter = {}) {
+  const { country, position } = filter;
+  let pool = PLAYERS_CACHE;
+  if (country) pool = pool.filter(p => p.country === country);
+  if (position) pool = pool.filter(p => p.position === position);
+  if (!pool.length) pool = PLAYERS_CACHE;
+  if (!pool.length) return "Jugador";
+  return pool[Math.floor(Math.random() * pool.length)].name;
+}
