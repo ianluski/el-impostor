@@ -44,19 +44,28 @@ io.on("connection", (socket) => {
     socket.join(code);
     io.to(code).emit("updatePlayers", rooms[code].ids.length);
   });
+socket.on("startGame", (code) => {
+  const room = rooms[code];
+  if (!room) return;
+  const ids = room.ids || [];
+  if (ids.length < 3) {
+    // opcional: avisar al host que faltan jugadores
+    io.to(socket.id).emit("updatePlayers", ids.length);
+    return;
+  }
 
-  socket.on("startGame", (code) => {
-    const room = rooms[code];
-    if (!room || !room.ids.length) return;
-    const impostorIndex = Math.floor(Math.random() * room.ids.length);
-    room.ids.forEach((id, i) => {
-      const word = i === impostorIndex
-        ? "IMPOSTOR"
-        : jugadores[Math.floor(Math.random()*jugadores.length)];
-      io.to(id).emit("role", word);
-    });
+  // 1) Elegimos al impostor
+  const impostorIndex = Math.floor(Math.random() * ids.length);
+
+  // 2) Elegimos UNA única palabra para todos los demás
+  const secretWord = jugadores[Math.floor(Math.random() * jugadores.length)];
+
+  // 3) Enviamos “IMPOSTOR” al impostor y la misma palabra al resto
+  ids.forEach((id, i) => {
+    const word = (i === impostorIndex) ? "IMPOSTOR" : secretWord;
+    io.to(id).emit("role", word);
   });
-
+});
   socket.on("disconnect", () => {
     for (const code of Object.keys(rooms)) {
       const room = rooms[code];
