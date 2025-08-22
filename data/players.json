@@ -1,0 +1,7 @@
+{
+  "players": [
+    { "name": "Lionel Messi" },
+    { "name": "Kylian Mbappé"}
+    // ... agrega miles si querés
+  ]
+}
