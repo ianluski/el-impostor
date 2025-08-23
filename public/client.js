@@ -1,41 +1,81 @@
 const socket = io();
-let currentRoom = null;
-let isHost = false;
 
+let currentRoom = null;
+let myName = '';
+let isHost = false;
+let lastRound = 0;
+let homeMode = null; // 'create' | 'join'
+
+// Shortcuts
 const $ = (s)=>document.querySelector(s);
 
-// HOME
+// PANTALLAS
+const landing = $('#landing');
 const home = $('#home');
-const nameInput = $('#name');
-const roomInput = $('#room');
-const statusEl = $('#status');
-const createBtn = $('#createBtn');
-const joinBtn = $('#joinBtn');
-const startBtn = $('#startBtn');
+const game = $('#game');
+
+// LANDING
+const goCreateBtn = $('#goCreateBtn');
+const goJoinBtn   = $('#goJoinBtn');
+
+// HOME (lobby)
+const nameInput   = $('#name');
+const rowCreate   = $('#rowCreate');
+const rowJoin     = $('#rowJoin');
+const createBtn   = $('#createBtn');
+const joinBtn     = $('#joinBtn');
+const startBtn    = $('#startBtn');
+const roomInput   = $('#room');
+const poolTextarea= $('#pool');
 const roomCodeTag = $('#roomCodeTag');
-const poolTextarea = $('#pool');
-const hostBadge = document.createElement('div'); // para mostrar si sos host o quién es host
-hostBadge.className = 'muted';
-home.appendChild(hostBadge);
+const statusEl    = $('#status');
+const hostBadge   = $('#hostBadge');
+const playersList = $('#playersList');
 
 // GAME
-const game = $('#game');
-const roleEl = $('#role');
-const revealBox = $('#revealBox');
-const backBtn = $('#backBtn');
-const revealBtn = $('#revealBtn');
-const nextBtn = $('#nextBtn');
+const roleEl     = $('#role');
+const revealBox  = $('#revealBox');
+const backBtn    = $('#backBtn');
+const revealBtn  = $('#revealBtn');
+const nextBtn    = $('#nextBtn');
 
-// ---- helpers UI
-function showHome(){
-  home.classList.remove('hidden');
+// ====== UI helpers ======
+function showLanding(){
+  landing.classList.remove('hidden');
+  home.classList.add('hidden');
   game.classList.add('hidden');
-  revealBox.classList.add('hidden');
-  revealBox.textContent = '';
-  roleEl.textContent = '—';
+  // limpiar estado básico
+  currentRoom = null;
+  lastRound = 0;
+  isHost = false;
+  homeMode = null;
+  statusEl.textContent = 'Jugadores en sala: 0';
+  playersList.innerHTML = '';
+  roomCodeTag.style.display = 'none';
+  roomInput.value = '';
+  hostBadge.textContent = '';
+}
+
+function showHome(mode){
+  homeMode = mode; // 'create' | 'join'
+  landing.classList.add('hidden');
+  game.classList.add('hidden');
+  home.classList.remove('hidden');
+
+  // visibilidad por modo
+  if (mode === 'create') {
+    rowCreate.classList.remove('hidden');
+    rowJoin.classList.add('hidden');
+  } else {
+    rowCreate.classList.add('hidden');
+    rowJoin.classList.remove('hidden');
+  }
+
+  updateHostUI(); // deshabilita/ habilita botones según sea host
 }
 
 function showGame(){
+  landing.classList.add('hidden');
   home.classList.add('hidden');
   game.classList.remove('hidden');
 }
@@ -46,14 +86,15 @@ function showRoomCode(code){
 }
 
 function updateHostUI() {
-  // Botones que solo maneja host
+  // Solo el host maneja estas acciones
   startBtn.disabled  = !isHost;
   revealBtn.disabled = !isHost;
   nextBtn.disabled   = !isHost;
-  hostBadge.textContent = isHost ? 'Sos el host' : '(Host: limitado a iniciar, revelar y siguiente ronda)';
+  hostBadge.textContent = isHost
+    ? 'Sos el host'
+    : (currentRoom ? '(El host maneja: iniciar, revelar y siguiente ronda)' : '');
 }
 
-// ---- flujo
 function genCode(){
   const A = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   let s = "";
@@ -61,21 +102,26 @@ function genCode(){
   return s;
 }
 
+// ====== LANDING eventos ======
+goCreateBtn.onclick = () => showHome('create');
+goJoinBtn.onclick   = () => showHome('join');
+
+// ====== HOME (flows) ======
 createBtn.onclick = () => {
-  const name = (nameInput.value || '').trim() || 'Jugador';
+  myName = (nameInput.value || '').trim() || 'Jugador';
   const code = genCode();
   currentRoom = code;
-  socket.emit('joinRoom', { code, name }); // crea o une
+  socket.emit('joinRoom', { code, name: myName }); // crea o une (si no existe)
   showRoomCode(code);
   statusEl.textContent = 'Jugadores en sala: 1 (sos el host)';
 };
 
 joinBtn.onclick = () => {
   const code = (roomInput.value || '').trim().toUpperCase();
-  const name = (nameInput.value || '').trim() || 'Jugador';
+  myName = (nameInput.value || '').trim() || 'Jugador';
   if (!code) return alert('Ingresá un código de sala');
   currentRoom = code;
-  socket.emit('joinRoom', { code, name });
+  socket.emit('joinRoom', { code, name: myName });
   showRoomCode(code);
 };
 
@@ -85,6 +131,7 @@ startBtn.onclick = () => {
   socket.emit('startGame', { code: currentRoom, customPool });
 };
 
+// ====== GAME acciones ======
 revealBtn.onclick = () => {
   if (!currentRoom) return;
   socket.emit('reveal', currentRoom);
@@ -93,7 +140,6 @@ revealBtn.onclick = () => {
 nextBtn.onclick = () => {
   if (!currentRoom) return;
   const customPool = (poolTextarea.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
-  // limpiar revelado
   revealBox.classList.add('hidden');
   revealBox.textContent = '';
   socket.emit('startGame', { code: currentRoom, customPool });
@@ -101,33 +147,41 @@ nextBtn.onclick = () => {
 
 backBtn.onclick = () => {
   if (currentRoom) socket.emit('leaveRoom', currentRoom);
-  currentRoom = null;
-  roomInput.value = '';
-  roomCodeTag.style.display = 'none';
-  statusEl.textContent = 'Jugadores en sala: 0';
-  showHome();
+  showLanding();
 };
 
-// ---- eventos del servidor
+// ====== Servidor → Cliente ======
 socket.on('roomInfo', ({ code, isHost: hostFlag, hostName, players }) => {
-  // guardamos rol de host
   isHost = !!hostFlag;
   updateHostUI();
   statusEl.textContent = `Jugadores en sala: ${players}`;
   if (code) showRoomCode(code);
-  if (hostName) hostBadge.textContent = isHost ? 'Sos el host' : `Host: ${hostName}`;
+  hostBadge.textContent = isHost ? 'Sos el host' : `Host: ${hostName || 'Desconocido'}`;
 });
 
-socket.on('hostUpdate', ({ hostName }) => {
-  // si cambia el host (p.ej. se fue el host), actualizamos el badge
-  if (!isHost) hostBadge.textContent = `Host: ${hostName || 'Desconocido'}`;
+socket.on('roomState', ({ count, names, hostName }) => {
+  statusEl.textContent = `Jugadores en sala: ${count}`;
+  playersList.innerHTML = '';
+  names.forEach(n => {
+    const li = document.createElement('li');
+    li.textContent = n;
+    playersList.appendChild(li);
+  });
+  if (!isHost && currentRoom) hostBadge.textContent = `Host: ${hostName || 'Desconocido'}`;
 });
 
-socket.on('updatePlayers', (n) => {
-  statusEl.textContent = `Jugadores en sala: ${n}`;
-});
+socket.on('role', (payload) => {
+  let word = payload;
+  let round = lastRound;
 
-socket.on('role', (word) => {
+  if (typeof payload === 'object' && payload) {
+    word = payload.word;
+    round = payload.round || (lastRound + 1);
+  }
+
+  if (round < lastRound) return; // evita mostrar algo viejo
+  lastRound = round;
+
   roleEl.textContent = word;
   showGame();
 });
@@ -141,6 +195,13 @@ socket.on('notAllowed', (msg) => {
   alert(msg || 'Acción no permitida');
 });
 
-// logs
-socket.on('connect', ()=>console.log('Socket conectado', socket.id));
+// Auto-rejoin si el socket se resetea (por suspensión de dispositivo, etc.)
+socket.on('connect', () => {
+  if (currentRoom && myName) {
+    socket.emit('joinRoom', { code: currentRoom, name: myName });
+  }
+});
 socket.on('connect_error', (e)=>console.error('Socket error', e));
+
+// Al iniciar, mostrar la landing
+showLanding();
