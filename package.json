@@ -1,7 +1,7 @@
 {
   "name": "el-impostor",
-  "version": "1.0.0",
-  "description": "Juego multijugador El Impostor",
+  "version": "1.1.0",
+  "description": "El Impostor con base manual de 500 jugadores + lista personalizada",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
