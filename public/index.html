@@ -8,7 +8,9 @@
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-  <main class="card">
+
+  <!-- ======== HOME (lobby) ======== -->
+  <main id="home" class="card">
     <h1>⚽ El Impostor</h1>
 
     <div class="row">
@@ -31,11 +33,24 @@
       <textarea id="pool" rows="6" placeholder="Messi
 Maradona
 Riquelme" style="width:100%"></textarea>
-      <small class="muted">Si la dejás vacía, usamos la base de 500 jugadores incluida en el servidor.</small>
+      <small class="muted">Si la dejás vacía, usamos la base de jugadores incluida en el servidor.</small>
     </div>
 
     <p id="status">Jugadores en sala: 0</p>
-    <p id="role">Tu palabra aparecerá aquí</p>
+  </main>
+
+  <!-- ======== GAME (solo palabra y botones) ======== -->
+  <main id="game" class="card hidden">
+    <h2>Tu palabra es:</h2>
+    <p id="role" class="role-big">—</p>
+
+    <div id="revealBox" class="reveal hidden"></div>
+
+    <div class="row">
+      <button id="backBtn">Salir a Home</button>
+      <button id="revealBtn">Revelar impostor</button>
+      <button id="nextBtn">Siguiente ronda</button>
+    </div>
   </main>
 
   <script src="client.js"></script>
