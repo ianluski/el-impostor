@@ -11,22 +11,27 @@
   <main class="card">
     <h1>⚽ El Impostor</h1>
 
-    <!-- NUEVO: tu nombre -->
     <div class="row">
       <input id="name" placeholder="Tu nombre (ej: Ian)" maxlength="32" />
     </div>
 
-    <!-- Crear sala (genera código) -->
     <div class="row">
       <button id="createBtn">Crear sala</button>
       <span id="roomCodeTag" class="tag" style="display:none"></span>
     </div>
 
-    <!-- Unirse a una sala existente -->
     <div class="row">
       <input id="room" placeholder="Código de sala (ej: ABCD)" maxlength="8" />
       <button id="joinBtn">Unirse</button>
       <button id="startBtn">Iniciar juego</button>
+    </div>
+
+    <div class="row" style="flex-direction:column;gap:8px;max-width:700px;margin-inline:auto">
+      <label for="pool">Lista personalizada (opcional) — una palabra por línea</label>
+      <textarea id="pool" rows="6" placeholder="Messi
+Maradona
+Riquelme" style="width:100%"></textarea>
+      <small class="muted">Si la dejás vacía, usamos la base de 500 jugadores incluida en el servidor.</small>
     </div>
 
     <p id="status">Jugadores en sala: 0</p>
