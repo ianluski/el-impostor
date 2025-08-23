@@ -1,1 +1,21 @@
-body{font-family:sans-serif;background:#0b0f1a;color:#fff}
+:root{ --bg:#0b0f1a; --panel:#0f1c31; --border:#22324f; --fg:#eaf2ff; --acc:#62b0ff; }
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:#0b0f1a; color:var(--fg);
+  display:grid; place-items:center; font-family:system-ui,Segoe UI,Arial
+}
+.card{
+  width:min(720px, 92vw);
+  background:var(--panel); border:1px solid var(--border); border-radius:12px;
+  padding:18px; display:grid; gap:12px; text-align:center;
+}
+.row{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+input,button,textarea{
+  padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:#0b1629; color:var(--fg);
+}
+textarea{min-height:120px}
+button{ background:var(--acc); color:#051324; border:none; font-weight:700; cursor:pointer }
+.tag{ display:inline-block; padding:6px 10px; border-radius:999px; background:#0b1629; border:1px solid var(--border) }
+#role{ font-size:1.2rem; font-weight:700 }
+.muted{ color:#9eb2c8 }
