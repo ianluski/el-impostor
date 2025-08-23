@@ -1,5 +1,6 @@
 const socket = io();
 let currentRoom = null;
+let isHost = false;
 
 const $ = (s)=>document.querySelector(s);
 
@@ -13,6 +14,9 @@ const joinBtn = $('#joinBtn');
 const startBtn = $('#startBtn');
 const roomCodeTag = $('#roomCodeTag');
 const poolTextarea = $('#pool');
+const hostBadge = document.createElement('div'); // para mostrar si sos host o quién es host
+hostBadge.className = 'muted';
+home.appendChild(hostBadge);
 
 // GAME
 const game = $('#game');
@@ -22,7 +26,7 @@ const backBtn = $('#backBtn');
 const revealBtn = $('#revealBtn');
 const nextBtn = $('#nextBtn');
 
-// ---- helpers de UI
+// ---- helpers UI
 function showHome(){
   home.classList.remove('hidden');
   game.classList.add('hidden');
@@ -41,6 +45,15 @@ function showRoomCode(code){
   roomCodeTag.textContent = `Sala: ${code}`;
 }
 
+function updateHostUI() {
+  // Botones que solo maneja host
+  startBtn.disabled  = !isHost;
+  revealBtn.disabled = !isHost;
+  nextBtn.disabled   = !isHost;
+  hostBadge.textContent = isHost ? 'Sos el host' : '(Host: limitado a iniciar, revelar y siguiente ronda)';
+}
+
+// ---- flujo
 function genCode(){
   const A = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   let s = "";
@@ -48,7 +61,6 @@ function genCode(){
   return s;
 }
 
-// ---- flujo
 createBtn.onclick = () => {
   const name = (nameInput.value || '').trim() || 'Jugador';
   const code = genCode();
@@ -73,39 +85,20 @@ startBtn.onclick = () => {
   socket.emit('startGame', { code: currentRoom, customPool });
 };
 
-// Cuando el server te asigna palabra → pasamos a la pantalla de juego
-socket.on('role', (word) => {
-  roleEl.textContent = word;
-  showGame();
-});
-
-// Estado de cantidad de jugadores (se ve en home)
-socket.on('updatePlayers', (n) => {
-  statusEl.textContent = `Jugadores en sala: ${n}`;
-});
-
-// Revelar impostor (pedimos al server y lo mostramos)
 revealBtn.onclick = () => {
   if (!currentRoom) return;
   socket.emit('reveal', currentRoom);
 };
 
-socket.on('revealResult', ({ impostorName, word }) => {
-  revealBox.textContent = `Impostor: ${impostorName || 'Desconocido'} — Palabra: ${word}`;
-  revealBox.classList.remove('hidden');
-});
-
-// Siguiente ronda (misma sala; puede usar lista personalizada)
 nextBtn.onclick = () => {
   if (!currentRoom) return;
   const customPool = (poolTextarea.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
-  // borrar revelado anterior
+  // limpiar revelado
   revealBox.classList.add('hidden');
   revealBox.textContent = '';
   socket.emit('startGame', { code: currentRoom, customPool });
 };
 
-// Salir a home (dejás la sala)
 backBtn.onclick = () => {
   if (currentRoom) socket.emit('leaveRoom', currentRoom);
   currentRoom = null;
@@ -115,6 +108,39 @@ backBtn.onclick = () => {
   showHome();
 };
 
-// Logs útiles
+// ---- eventos del servidor
+socket.on('roomInfo', ({ code, isHost: hostFlag, hostName, players }) => {
+  // guardamos rol de host
+  isHost = !!hostFlag;
+  updateHostUI();
+  statusEl.textContent = `Jugadores en sala: ${players}`;
+  if (code) showRoomCode(code);
+  if (hostName) hostBadge.textContent = isHost ? 'Sos el host' : `Host: ${hostName}`;
+});
+
+socket.on('hostUpdate', ({ hostName }) => {
+  // si cambia el host (p.ej. se fue el host), actualizamos el badge
+  if (!isHost) hostBadge.textContent = `Host: ${hostName || 'Desconocido'}`;
+});
+
+socket.on('updatePlayers', (n) => {
+  statusEl.textContent = `Jugadores en sala: ${n}`;
+});
+
+socket.on('role', (word) => {
+  roleEl.textContent = word;
+  showGame();
+});
+
+socket.on('revealResult', ({ impostorName, word }) => {
+  revealBox.textContent = `Impostor: ${impostorName || 'Desconocido'} — Palabra: ${word}`;
+  revealBox.classList.remove('hidden');
+});
+
+socket.on('notAllowed', (msg) => {
+  alert(msg || 'Acción no permitida');
+});
+
+// logs
 socket.on('connect', ()=>console.log('Socket conectado', socket.id));
 socket.on('connect_error', (e)=>console.error('Socket error', e));
