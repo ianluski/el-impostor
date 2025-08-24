@@ -52,9 +52,10 @@ const PLAYERS = [
 //   ids:[socketId,...],
 //   names:{ socketId: "Nombre" },
 //   hostId: socketId,
-//   last:{ impostorId, word, round } | null,
+//   last:{ impostorIds:string[], word:string, round:number } | null,
 //   round: number,
-//   pool: string[] // lista personalizada del host (opcional)
+//   pool: string[],        // lista personalizada del host (opcional)
+//   impostors: number      // cantidad de impostores (1..5)
 // }
 const rooms = Object.create(null);
 
@@ -71,7 +72,8 @@ function buildRoomState(room) {
     count: room.ids.length,
     names,
     hostName: room.names[room.hostId] || "Host",
-    poolCount: (room.pool && room.pool.length) ? room.pool.length : 0
+    poolCount: (room.pool && room.pool.length) ? room.pool.length : 0,
+    impostors: room.impostors || 1
   };
 }
 function broadcastRoomState(code) {
@@ -93,7 +95,8 @@ io.on("connection", (socket) => {
       hostId: socket.id,
       last: null,
       round: 0,
-      pool: []
+      pool: [],
+      impostors: 1
     };
 
     socket.join(code);
@@ -119,7 +122,8 @@ io.on("connection", (socket) => {
         hostId: socket.id,
         last: null,
         round: 0,
-        pool: []
+        pool: [],
+        impostors: 1
       };
     }
 
@@ -157,6 +161,23 @@ io.on("connection", (socket) => {
     broadcastRoomState(code);
   });
 
+  // ---------- Selección de cantidad de impostores (SOLO HOST) ----------
+  socket.on("setImpostors", ({ code, impostors }) => {
+    const room = rooms[code];
+    if (!room) return;
+    if (room.hostId !== socket.id) {
+      socket.emit("notAllowed", "Solo el host puede cambiar la cantidad de impostores.");
+      return;
+    }
+    // normalizar a entero 1..5
+    let n = parseInt(impostors, 10);
+    if (!Number.isFinite(n)) n = 1;
+    n = Math.max(1, Math.min(5, n));
+    room.impostors = n;
+    io.to(code).emit("impostorsUpdated", { impostors: room.impostors });
+    broadcastRoomState(code);
+  });
+
   // ---------- Iniciar/siguiente ronda (SOLO HOST) ----------
   // Recibe { code, customPool? } — si customPool viene, se guarda para la sala.
   socket.on("startGame", ({ code, customPool }) => {
@@ -183,20 +204,32 @@ io.on("connection", (socket) => {
     // Pool efectiva a usar
     const poolToUse = (room.pool && room.pool.length) ? room.pool : PLAYERS;
 
+    // Cantidad de impostores válida: 1..5 y < jugadores
+    const desired = room.impostors || 1;
+    const maxAllowed = Math.min(5, Math.max(1, ids.length - 1)); // no todos pueden ser impostores
+    const impostorQty = Math.max(1, Math.min(desired, maxAllowed));
+
     // Sube número de ronda y sortea
     room.round = (room.round || 0) + 1;
 
-    const impostorIndex = Math.floor(Math.random() * ids.length);
-    const secretWord = poolToUse[Math.floor(Math.random() * poolToUse.length)];
-    room.last = { impostorId: ids[impostorIndex], word: secretWord, round: room.round };
+    // Elegir impostorQty índices únicos
+    const indices = [...ids.keys()];
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    const impostorIndexes = new Set(indices.slice(0, impostorQty));
+    const impostorIds = [...impostorIndexes].map(i => ids[i]);
 
-    // Reparto con payload {word, round} para evitar “quedarse pegado”
+    const secretWord = poolToUse[Math.floor(Math.random() * poolToUse.length)];
+    room.last = { impostorIds, word: secretWord, round: room.round };
+
+    // Reparto con payload {word, round}
     ids.forEach((id, i) => {
-      const word = (i === impostorIndex) ? "IMPOSTOR" : secretWord;
+      const word = impostorIndexes.has(i) ? "IMPOSTOR" : secretWord;
       io.to(id).emit("role", { word, round: room.round });
     });
 
-    // Estado actualizado (por si hubo cambios de gente/host entre rondas)
     broadcastRoomState(code);
   });
 
@@ -210,9 +243,9 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const { impostorId, word } = room.last;
-    const impostorName = room.names[impostorId] || "Desconocido";
-    io.to(code).emit("revealResult", { impostorName, word });
+    const { impostorIds, word } = room.last;
+    const impostorsNames = (impostorIds || []).map(id => room.names[id] || "Desconocido");
+    io.to(code).emit("revealResult", { impostorsNames, word });
   });
 
   // ---------- Salir de sala ----------
