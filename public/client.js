@@ -136,7 +136,14 @@ joinBtn.onclick = () => {
 startBtn.onclick = () => {
   if (!currentRoom) return alert('Primero creá o unite a una sala');
   const customPool = (poolTextarea.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
-  socket.emit('startGame', { code: currentRoom, customPool });
+
+  if (isHost) {
+    // Guardar la lista en la sala y luego iniciar
+    socket.emit('setPool', { code: currentRoom, customPool });
+    socket.emit('startGame', { code: currentRoom }); // ya usa la pool guardada
+  } else {
+    alert('Solo el host puede iniciar la partida.');
+  }
 };
 
 // ====== GAME acciones ======
@@ -147,10 +154,15 @@ revealBtn.onclick = () => {
 
 nextBtn.onclick = () => {
   if (!currentRoom) return;
+  if (!isHost) return alert('Solo el host puede iniciar la siguiente ronda.');
+
   const customPool = (poolTextarea.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
+  // Opcional: si querés que cada ronda use lo que está escrito actualmente
+  socket.emit('setPool', { code: currentRoom, customPool });
+
   revealBox.classList.add('hidden');
   revealBox.textContent = '';
-  socket.emit('startGame', { code: currentRoom, customPool });
+  socket.emit('startGame', { code: currentRoom }); // usa la pool guardada
 };
 
 backBtn.onclick = () => {
