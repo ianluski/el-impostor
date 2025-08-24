@@ -90,6 +90,13 @@ function updateHostUI() {
   revealBtn.disabled = !isHost;
   nextBtn.disabled   = !isHost;
 
+  impostorsSelect.disabled = !isHost;
+impostorsSelect.onchange = () => {
+  if (isHost && currentRoom) {
+    socket.emit('setImpostors', { code: currentRoom, impostors: impostorsSelect.value });
+  }
+};
+
   // textarea de lista personalizada: SOLO host edita
   const disabledMsg = '(Solo el host puede editar esta lista)';
   if (!isHost) {
@@ -136,14 +143,21 @@ joinBtn.onclick = () => {
 startBtn.onclick = () => {
   if (!currentRoom) return alert('Primero creá o unite a una sala');
   const customPool = (poolTextarea.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
+  if (!isHost) return alert('Solo el host puede iniciar la partida.');
+  socket.emit('setPool', { code: currentRoom, customPool });
+  socket.emit('setImpostors', { code: currentRoom, impostors: impostorsSelect.value });
+  socket.emit('startGame', { code: currentRoom });
+};
 
-  if (isHost) {
-    // Guardar la lista en la sala y luego iniciar
-    socket.emit('setPool', { code: currentRoom, customPool });
-    socket.emit('startGame', { code: currentRoom }); // ya usa la pool guardada
-  } else {
-    alert('Solo el host puede iniciar la partida.');
-  }
+nextBtn.onclick = () => {
+  if (!currentRoom) return;
+  if (!isHost) return alert('Solo el host puede iniciar la siguiente ronda.');
+  const customPool = (poolTextarea.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
+  socket.emit('setPool', { code: currentRoom, customPool });
+  socket.emit('setImpostors', { code: currentRoom, impostors: impostorsSelect.value });
+  revealBox.classList.add('hidden');
+  revealBox.textContent = '';
+  socket.emit('startGame', { code: currentRoom });
 };
 
 // ====== GAME acciones ======
@@ -152,9 +166,6 @@ revealBtn.onclick = () => {
   socket.emit('reveal', currentRoom);
 };
 
-nextBtn.onclick = () => {
-  if (!currentRoom) return;
-  if (!isHost) return alert('Solo el host puede iniciar la siguiente ronda.');
 
   const customPool = (poolTextarea.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
   // Opcional: si querés que cada ronda use lo que está escrito actualmente
@@ -189,7 +200,21 @@ socket.on('roomState', ({ count, names, hostName }) => {
   });
   if (!isHost && currentRoom) hostBadge.textContent = `Host: ${hostName || 'Desconocido'}`;
 });
+socket.on('roomState', ({ count, names, hostName, poolCount, impostors }) => {
+  statusEl.textContent = `Jugadores en sala: ${count}`;
+  playersList.innerHTML = '';
+  names.forEach(n => {
+    const li = document.createElement('li');
+    li.textContent = n;
+    playersList.appendChild(li);
+  });
+  if (!isHost && currentRoom) hostBadge.textContent = `Host: ${hostName || 'Desconocido'}`;
+  if (typeof impostors !== 'undefined') impostorsSelect.value = String(impostors);
+});
 
+socket.on('impostorsUpdated', ({ impostors }) => {
+  impostorsSelect.value = String(impostors);
+});
 socket.on('role', (payload) => {
   let word = payload;
   let round = lastRound;
@@ -206,8 +231,9 @@ socket.on('role', (payload) => {
   showGame();
 });
 
-socket.on('revealResult', ({ impostorName, word }) => {
-  revealBox.textContent = `Impostor: ${impostorName || 'Desconocido'} — Palabra: ${word}`;
+socket.on('revealResult', ({ impostorsNames, word }) => {
+  const names = Array.isArray(impostorsNames) ? impostorsNames.join(', ') : String(impostorsNames || 'Desconocido');
+  revealBox.textContent = `Impostores: ${names} — Palabra: ${word}`;
   revealBox.classList.remove('hidden');
 });
 
