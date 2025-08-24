@@ -1,5 +1,5 @@
 const socket = io();
-
+const impostorsSelect = document.getElementById('impostors');
 let currentRoom = null;
 let myName = '';
 let isHost = false;
