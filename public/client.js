@@ -86,13 +86,21 @@ function showRoomCode(code){
 }
 
 function updateHostUI() {
-  // Solo el host maneja estas acciones
   startBtn.disabled  = !isHost;
   revealBtn.disabled = !isHost;
   nextBtn.disabled   = !isHost;
-  hostBadge.textContent = isHost
-    ? 'Sos el host'
-    : (currentRoom ? '(El host maneja: iniciar, revelar y siguiente ronda)' : '');
+
+  // textarea de lista personalizada: SOLO host edita
+  const disabledMsg = '(Solo el host puede editar esta lista)';
+  if (!isHost) {
+    poolTextarea.setAttribute('disabled', 'disabled');
+    poolTextarea.placeholder = disabledMsg;
+  } else {
+    poolTextarea.removeAttribute('disabled');
+    if (poolTextarea.placeholder === disabledMsg) {
+      poolTextarea.placeholder = 'Messi\nMaradona\nRiquelme';
+    }
+  }
 }
 
 function genCode(){
