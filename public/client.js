@@ -1,15 +1,16 @@
+// client.js
 const socket = io();
-const impostorsSelect = document.getElementById('impostors');
+console.log('[client] script cargado');
+
 let currentRoom = null;
 let myName = '';
 let isHost = false;
 let lastRound = 0;
 let homeMode = null; // 'create' | 'join'
 
-// Shortcuts
 const $ = (s)=>document.querySelector(s);
 
-// PANTALLAS
+// Pantallas
 const landing = $('#landing');
 const home = $('#home');
 const game = $('#game');
@@ -18,19 +19,20 @@ const game = $('#game');
 const goCreateBtn = $('#goCreateBtn');
 const goJoinBtn   = $('#goJoinBtn');
 
-// HOME (lobby)
-const nameInput   = $('#name');
-const rowCreate   = $('#rowCreate');
-const rowJoin     = $('#rowJoin');
-const createBtn   = $('#createBtn');
-const joinBtn     = $('#joinBtn');
-const startBtn    = $('#startBtn');
-const roomInput   = $('#room');
-const poolTextarea= $('#pool');
-const roomCodeTag = $('#roomCodeTag');
-const statusEl    = $('#status');
-const hostBadge   = $('#hostBadge');
-const playersList = $('#playersList');
+// HOME
+const nameInput    = $('#name');
+const rowCreate    = $('#rowCreate');
+const rowJoin      = $('#rowJoin');
+const createBtn    = $('#createBtn');
+const joinBtn      = $('#joinBtn');
+const startBtn     = $('#startBtn');
+const roomInput    = $('#room');
+const poolTextarea = $('#pool');
+const roomCodeTag  = $('#roomCodeTag');
+const statusEl     = $('#status');
+const hostBadge    = $('#hostBadge');
+const playersList  = $('#playersList');
+const impostorsSelect = $('#impostors');
 
 // GAME
 const roleEl     = $('#role');
@@ -39,12 +41,11 @@ const backBtn    = $('#backBtn');
 const revealBtn  = $('#revealBtn');
 const nextBtn    = $('#nextBtn');
 
-// ====== UI helpers ======
+// ====== UI ======
 function showLanding(){
   landing.classList.remove('hidden');
   home.classList.add('hidden');
   game.classList.add('hidden');
-  // limpiar estado básico
   currentRoom = null;
   lastRound = 0;
   isHost = false;
@@ -54,15 +55,15 @@ function showLanding(){
   roomCodeTag.style.display = 'none';
   roomInput.value = '';
   hostBadge.textContent = '';
+  console.log('[UI] landing');
 }
 
 function showHome(mode){
-  homeMode = mode; // 'create' | 'join'
+  homeMode = mode;
   landing.classList.add('hidden');
   game.classList.add('hidden');
   home.classList.remove('hidden');
 
-  // visibilidad por modo
   if (mode === 'create') {
     rowCreate.classList.remove('hidden');
     rowJoin.classList.add('hidden');
@@ -70,14 +71,15 @@ function showHome(mode){
     rowCreate.classList.add('hidden');
     rowJoin.classList.remove('hidden');
   }
-
-  updateHostUI(); // deshabilita/ habilita botones según sea host
+  updateHostUI();
+  console.log('[UI] home modo =', mode);
 }
 
 function showGame(){
   landing.classList.add('hidden');
   home.classList.add('hidden');
   game.classList.remove('hidden');
+  console.log('[UI] game');
 }
 
 function showRoomCode(code){
@@ -90,14 +92,7 @@ function updateHostUI() {
   revealBtn.disabled = !isHost;
   nextBtn.disabled   = !isHost;
 
-  impostorsSelect.disabled = !isHost;
-impostorsSelect.onchange = () => {
-  if (isHost && currentRoom) {
-    socket.emit('setImpostors', { code: currentRoom, impostors: impostorsSelect.value });
-  }
-};
-
-  // textarea de lista personalizada: SOLO host edita
+  // Solo host puede editar la lista
   const disabledMsg = '(Solo el host puede editar esta lista)';
   if (!isHost) {
     poolTextarea.setAttribute('disabled', 'disabled');
@@ -108,8 +103,16 @@ impostorsSelect.onchange = () => {
       poolTextarea.placeholder = 'Messi\nMaradona\nRiquelme';
     }
   }
+
+  // Solo host puede cambiar cantidad de impostores
+  impostorsSelect.disabled = !isHost;
+
+  hostBadge.textContent = isHost
+    ? 'Sos el host'
+    : (currentRoom ? '(El host maneja: iniciar, revelar y siguiente ronda)' : '');
 }
 
+// Generar código de sala
 function genCode(){
   const A = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   let s = "";
@@ -121,17 +124,20 @@ function genCode(){
 goCreateBtn.onclick = () => showHome('create');
 goJoinBtn.onclick   = () => showHome('join');
 
-// ====== HOME (flows) ======
+// ====== HOME eventos ======
 createBtn.onclick = () => {
+  console.log('[click] crear sala');
   myName = (nameInput.value || '').trim() || 'Jugador';
   const code = genCode();
   currentRoom = code;
-  socket.emit('joinRoom', { code, name: myName }); // crea o une (si no existe)
+  // joinRoom crea la sala si no existe y te hace host
+  socket.emit('joinRoom', { code, name: myName });
   showRoomCode(code);
   statusEl.textContent = 'Jugadores en sala: 1 (sos el host)';
 };
 
 joinBtn.onclick = () => {
+  console.log('[click] unirse');
   const code = (roomInput.value || '').trim().toUpperCase();
   myName = (nameInput.value || '').trim() || 'Jugador';
   if (!code) return alert('Ingresá un código de sala');
@@ -141,15 +147,23 @@ joinBtn.onclick = () => {
 };
 
 startBtn.onclick = () => {
+  console.log('[click] iniciar');
   if (!currentRoom) return alert('Primero creá o unite a una sala');
-  const customPool = (poolTextarea.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
   if (!isHost) return alert('Solo el host puede iniciar la partida.');
+  const customPool = (poolTextarea.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
   socket.emit('setPool', { code: currentRoom, customPool });
   socket.emit('setImpostors', { code: currentRoom, impostors: impostorsSelect.value });
   socket.emit('startGame', { code: currentRoom });
 };
 
+revealBtn.onclick = () => {
+  console.log('[click] revelar');
+  if (!currentRoom) return;
+  socket.emit('reveal', currentRoom);
+};
+
 nextBtn.onclick = () => {
+  console.log('[click] siguiente ronda');
   if (!currentRoom) return;
   if (!isHost) return alert('Solo el host puede iniciar la siguiente ronda.');
   const customPool = (poolTextarea.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
@@ -160,23 +174,8 @@ nextBtn.onclick = () => {
   socket.emit('startGame', { code: currentRoom });
 };
 
-// ====== GAME acciones ======
-revealBtn.onclick = () => {
-  if (!currentRoom) return;
-  socket.emit('reveal', currentRoom);
-};
-
-
-  const customPool = (poolTextarea.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
-  // Opcional: si querés que cada ronda use lo que está escrito actualmente
-  socket.emit('setPool', { code: currentRoom, customPool });
-
-  revealBox.classList.add('hidden');
-  revealBox.textContent = '';
-  socket.emit('startGame', { code: currentRoom }); // usa la pool guardada
-};
-
 backBtn.onclick = () => {
+  console.log('[click] salir');
   if (currentRoom) socket.emit('leaveRoom', currentRoom);
   showLanding();
 };
@@ -188,33 +187,22 @@ socket.on('roomInfo', ({ code, isHost: hostFlag, hostName, players }) => {
   statusEl.textContent = `Jugadores en sala: ${players}`;
   if (code) showRoomCode(code);
   hostBadge.textContent = isHost ? 'Sos el host' : `Host: ${hostName || 'Desconocido'}`;
+  console.log('[roomInfo]', { code, isHost, players });
 });
 
-socket.on('roomState', ({ count, names, hostName }) => {
-  statusEl.textContent = `Jugadores en sala: ${count}`;
-  playersList.innerHTML = '';
-  names.forEach(n => {
-    const li = document.createElement('li');
-    li.textContent = n;
-    playersList.appendChild(li);
-  });
-  if (!isHost && currentRoom) hostBadge.textContent = `Host: ${hostName || 'Desconocido'}`;
-});
 socket.on('roomState', ({ count, names, hostName, poolCount, impostors }) => {
   statusEl.textContent = `Jugadores en sala: ${count}`;
   playersList.innerHTML = '';
-  names.forEach(n => {
+  (names || []).forEach(n => {
     const li = document.createElement('li');
     li.textContent = n;
     playersList.appendChild(li);
   });
   if (!isHost && currentRoom) hostBadge.textContent = `Host: ${hostName || 'Desconocido'}`;
   if (typeof impostors !== 'undefined') impostorsSelect.value = String(impostors);
+  console.log('[roomState]', { count, names, hostName, poolCount, impostors });
 });
 
-socket.on('impostorsUpdated', ({ impostors }) => {
-  impostorsSelect.value = String(impostors);
-});
 socket.on('role', (payload) => {
   let word = payload;
   let round = lastRound;
@@ -224,30 +212,38 @@ socket.on('role', (payload) => {
     round = payload.round || (lastRound + 1);
   }
 
-  if (round < lastRound) return; // evita mostrar algo viejo
+  if (round < lastRound) return;
   lastRound = round;
 
   roleEl.textContent = word;
   showGame();
+  console.log('[role]', { word, round });
 });
 
 socket.on('revealResult', ({ impostorsNames, word }) => {
   const names = Array.isArray(impostorsNames) ? impostorsNames.join(', ') : String(impostorsNames || 'Desconocido');
   revealBox.textContent = `Impostores: ${names} — Palabra: ${word}`;
   revealBox.classList.remove('hidden');
+  console.log('[revealResult]', { impostorsNames, word });
+});
+
+socket.on('impostorsUpdated', ({ impostors }) => {
+  impostorsSelect.value = String(impostors);
+  console.log('[impostorsUpdated]', impostors);
 });
 
 socket.on('notAllowed', (msg) => {
   alert(msg || 'Acción no permitida');
+  console.warn('[notAllowed]', msg);
 });
 
-// Auto-rejoin si el socket se resetea (por suspensión de dispositivo, etc.)
 socket.on('connect', () => {
+  console.log('[socket] conectado', socket.id);
   if (currentRoom && myName) {
     socket.emit('joinRoom', { code: currentRoom, name: myName });
   }
 });
-socket.on('connect_error', (e)=>console.error('Socket error', e));
+socket.on('connect_error', (e)=>console.error('[socket] error', e));
 
-// Al iniciar, mostrar la landing
+// Arranque
 showLanding();
