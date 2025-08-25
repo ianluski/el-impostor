@@ -82,6 +82,15 @@ function broadcastRoomState(code) {
   io.to(code).emit("roomState", buildRoomState(room));
 }
 
+// Enviar el rol vigente a un socket (para sync de ronda actual)
+function sendCurrentRole(socket, room) {
+  if (!room || !room.last) return;
+  const { impostorIds, word, round } = room.last;
+  const isImpostor = Array.isArray(impostorIds) && impostorIds.includes(socket.id);
+  const myWord = isImpostor ? "IMPOSTOR" : word;
+  socket.emit("role", { word: myWord, round });
+}
+
 // ======= Socket.IO =======
 io.on("connection", (socket) => {
   // ---------- Crear sala ----------
@@ -141,6 +150,9 @@ io.on("connection", (socket) => {
       players: room.ids.length
     });
     broadcastRoomState(code);
+
+    // Sincronizar al que entra si ya hay una ronda corriendo
+    sendCurrentRole(socket, room);
   });
 
   // ---------- Guardar/Actualizar lista personalizada (SOLO HOST) ----------
@@ -169,7 +181,6 @@ io.on("connection", (socket) => {
       socket.emit("notAllowed", "Solo el host puede cambiar la cantidad de impostores.");
       return;
     }
-    // normalizar a entero 1..5
     let n = parseInt(impostors, 10);
     if (!Number.isFinite(n)) n = 1;
     n = Math.max(1, Math.min(5, n));
@@ -179,7 +190,6 @@ io.on("connection", (socket) => {
   });
 
   // ---------- Iniciar/siguiente ronda (SOLO HOST) ----------
-  // Recibe { code, customPool? } — si customPool viene, se guarda para la sala.
   socket.on("startGame", ({ code, customPool }) => {
     const room = rooms[code];
     if (!room) return;
@@ -189,42 +199,48 @@ io.on("connection", (socket) => {
       return;
     }
 
+    // Limpiar ids zombies (sockets que ya no existen)
+    room.ids = room.ids.filter(id => io.sockets.sockets.has(id));
+
     const ids = room.ids || [];
     if (ids.length < 3) {
       socket.emit("notAllowed", "Necesitás al menos 3 jugadores.");
       return;
     }
 
-    // Si el host manda una lista ahora, la guardamos para esta y próximas rondas
+    // Si el host manda una lista ahora, la guardamos
     if (Array.isArray(customPool) && customPool.length) {
       const cleaned = customPool.map(s => String(s).trim()).filter(Boolean);
       room.pool = cleaned;
     }
 
-    // Pool efectiva a usar
+    // Pool efectiva
     const poolToUse = (room.pool && room.pool.length) ? room.pool : PLAYERS;
 
     // Cantidad de impostores válida: 1..5 y < jugadores
     const desired = room.impostors || 1;
-    const maxAllowed = Math.min(5, Math.max(1, ids.length - 1)); // no todos pueden ser impostores
+    const maxAllowed = Math.min(5, Math.max(1, ids.length - 1));
     const impostorQty = Math.max(1, Math.min(desired, maxAllowed));
 
-    // Sube número de ronda y sortea
+    // Número de ronda
     room.round = (room.round || 0) + 1;
 
-    // Elegir impostorQty índices únicos
-    const indices = [...ids.keys()];
-    for (let i = indices.length - 1; i > 0; i--) {
+    // Elegir impostores únicos
+    const order = [...ids.keys()];
+    for (let i = order.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [indices[i], indices[j]] = [indices[j], indices[i]];
+      [order[i], order[j]] = [order[j], order[i]];
     }
-    const impostorIndexes = new Set(indices.slice(0, impostorQty));
+    const impostorIndexes = new Set(order.slice(0, impostorQty));
     const impostorIds = [...impostorIndexes].map(i => ids[i]);
 
     const secretWord = poolToUse[Math.floor(Math.random() * poolToUse.length)];
     room.last = { impostorIds, word: secretWord, round: room.round };
 
-    // Reparto con payload {word, round}
+    // Aviso de ronda (para que clientes pidan sync si se lo pierden)
+    io.to(code).emit("roundStarted", { round: room.round });
+
+    // Envío de roles individual
     ids.forEach((id, i) => {
       const word = impostorIndexes.has(i) ? "IMPOSTOR" : secretWord;
       io.to(id).emit("role", { word, round: room.round });
@@ -246,6 +262,20 @@ io.on("connection", (socket) => {
     const { impostorIds, word } = room.last;
     const impostorsNames = (impostorIds || []).map(id => room.names[id] || "Desconocido");
     io.to(code).emit("revealResult", { impostorsNames, word });
+  });
+
+  // ---------- Sync bajo demanda del cliente ----------
+  socket.on("syncMe", (code) => {
+    const room = rooms[code];
+    if (!room) return;
+    // Asegurar que figura en la sala
+    if (!room.ids.includes(socket.id)) {
+      room.ids.push(socket.id);
+      room.names[socket.id] ??= "Jugador";
+      socket.join(code);
+      broadcastRoomState(code);
+    }
+    sendCurrentRole(socket, room);
   });
 
   // ---------- Salir de sala ----------
