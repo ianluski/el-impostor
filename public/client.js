@@ -127,13 +127,9 @@ goJoinBtn.onclick   = () => showHome('join');
 // ====== HOME eventos ======
 createBtn.onclick = () => {
   console.log('[click] crear sala');
-  myName = (nameInput.value || '').trim() || 'Jugador';
-  const code = genCode();
-  currentRoom = code;
-  // joinRoom crea la sala si no existe y te hace host
-  socket.emit('joinRoom', { code, name: myName });
-  showRoomCode(code);
-  statusEl.textContent = 'Jugadores en sala: 1 (sos el host)';
+  myName = (nameInput && nameInput.value || '').trim() || 'Jugador';
+  // Pedimos al servidor que cree una sala y nos devuelva el código
+  socket.emit('createRoom', { name: myName });
 };
 
 joinBtn.onclick = () => {
@@ -218,6 +214,16 @@ socket.on('role', (payload) => {
   roleEl.textContent = word;
   showGame();
   console.log('[role]', { word, round });
+});
+
+socket.on('roomCreated', ({ code }) => {
+  console.log('[roomCreated]', code);
+  currentRoom = code;
+  showRoomCode(code);
+  if (statusEl) statusEl.textContent = 'Jugadores en sala: 1 (sos el host)';
+  // aseguramos estado de host
+  isHost = true;
+  updateHostUI();
 });
 
 socket.on('revealResult', ({ impostorsNames, word }) => {
