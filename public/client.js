@@ -9,6 +9,30 @@ let homeMode = null; // 'create' | 'join'
 
 const $ = (s)=>document.querySelector(s);
 
+// ===== THEME (light/dark) =====
+const rootEl = document.documentElement;
+const themeToggleBtn = document.getElementById('themeToggle');
+
+function applyTheme(theme){
+  rootEl.setAttribute('data-theme', theme);
+  try { localStorage.setItem('theme', theme); } catch(_) {}
+}
+(function initTheme(){
+  let saved = null;
+  try { saved = localStorage.getItem('theme'); } catch(_) {}
+  if (!saved) {
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    saved = prefersDark ? 'dark' : 'light';
+  }
+  applyTheme(saved);
+})();
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener('click', () => {
+    const next = rootEl.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+  });
+}
+
 // Pantallas
 const landing = $('#landing');
 const home = $('#home');
@@ -91,7 +115,7 @@ function updateHostUI() {
   const disabledMsg = '(Solo el host puede editar esta lista)';
   if (!isHost) {
     poolTextarea.setAttribute('disabled', 'disabled');
-    poolTextarea.placeholder = disabledMsg;
+    if (!poolTextarea.value) poolTextarea.placeholder = disabledMsg;
   } else {
     poolTextarea.removeAttribute('disabled');
     if (poolTextarea.placeholder === disabledMsg) {
@@ -191,7 +215,6 @@ socket.on('roomState', ({ count, names, hostName, poolCount, impostors }) => {
 });
 
 socket.on('roundStarted', ({ round }) => {
-  // Si por algún motivo no llega 'role', pedimos sync
   setTimeout(() => {
     if (round > (lastRound || 0)) {
       socket.emit('syncMe', currentRoom);
@@ -208,7 +231,7 @@ socket.on('role', (payload) => {
     round = payload.round || (lastRound + 1);
   }
 
-  if (round < lastRound) return; // evitar “viajes en el tiempo”
+  if (round < lastRound) return;
   lastRound = round;
 
   roleEl.textContent = word;
@@ -229,7 +252,7 @@ socket.on('notAllowed', (msg) => {
   alert(msg || 'Acción no permitida');
 });
 
-// Auto-rejoin + sync en caliente
+// Auto-rejoin + sync
 socket.on('connect', () => {
   if (currentRoom && myName) {
     socket.emit('joinRoom', { code: currentRoom, name: myName });
