@@ -9,7 +9,7 @@
 </head>
 <body>
 
-  <!-- ======== LANDING ======== -->
+  <!-- LANDING -->
   <main id="landing" class="card">
     <h1>⚽ El Impostor</h1>
     <p class="muted">Elegí cómo querés empezar</p>
@@ -19,57 +19,53 @@
     </div>
   </main>
 
-  <!-- ======== HOME (lobby) ======== -->
+  <!-- HOME / LOBBY -->
   <main id="home" class="card hidden">
     <h2>Lobby</h2>
-<div class="row">
-  <label for="impostors">Cantidad de impostores:</label>
-  <select id="impostors">
-    <option value="1">1</option>
-    <option value="2">2</option>
-    <option value="3">3</option>
-    <option value="4">4</option>
-    <option value="5">5</option>
-  </select>
-</div>
-    <!-- Nombre -->
+
     <div class="row">
       <input id="name" placeholder="Tu nombre (ej: Ian)" maxlength="32" />
     </div>
 
-    <!-- Modo CREAR (visible solo en modo 'create') -->
     <div id="rowCreate" class="row hidden">
       <button id="createBtn">Crear sala</button>
       <span id="roomCodeTag" class="tag" style="display:none"></span>
     </div>
 
-    <!-- Modo UNIRSE (visible solo en modo 'join') -->
     <div id="rowJoin" class="row hidden">
       <input id="room" placeholder="Código de sala (ej: ABCD)" maxlength="8" />
       <button id="joinBtn">Unirse</button>
     </div>
 
-    <!-- Iniciar juego (si sos host) -->
     <div class="row">
       <button id="startBtn">Iniciar juego</button>
     </div>
 
-    <!-- Lista personalizada -->
+    <div class="row">
+      <label for="impostors">Cantidad de impostores:</label>
+      <select id="impostors">
+        <option value="1" selected>1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+      </select>
+    </div>
+
     <div class="row" style="flex-direction:column;gap:8px;max-width:700px;margin-inline:auto">
       <label for="pool">Lista personalizada (opcional) — una palabra por línea</label>
       <textarea id="pool" rows="6" placeholder="Messi
 Maradona
 Riquelme" style="width:100%"></textarea>
-      <small class="muted">Si la dejás vacía, usamos la base de jugadores del servidor.</small>
+      <small class="muted">Solo el host puede editarla. Si la dejás vacía, se usa la base del servidor.</small>
     </div>
 
-    <!-- Estado de sala -->
     <p id="status">Jugadores en sala: 0</p>
     <div id="hostBadge" class="muted"></div>
     <ul id="playersList" style="list-style:none;padding-left:0;margin:8px 0 0 0;"></ul>
   </main>
 
-  <!-- ======== GAME ======== -->
+  <!-- GAME -->
   <main id="game" class="card hidden">
     <h2>Tu palabra es:</h2>
     <p id="role" class="role-big">—</p>
@@ -83,6 +79,7 @@ Riquelme" style="width:100%"></textarea>
     </div>
   </main>
 
+  <!-- IMPORTANTE: client.js al final para que existan todos los elementos -->
   <script src="client.js"></script>
 </body>
 </html>
