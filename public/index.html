@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -9,74 +9,101 @@
 </head>
 <body>
 
-  <!-- LANDING -->
-  <main id="landing" class="card">
-    <h1>⚽ El Impostor</h1>
-    <p class="muted">Elegí cómo querés empezar</p>
-    <div class="row">
-      <button id="goCreateBtn">Crear sala</button>
-      <button id="goJoinBtn">Unirse a sala</button>
+  <!-- TOP BAR -->
+  <header class="topbar glass">
+    <div class="brand">
+      <span class="logo">⚽</span>
+      <span class="title">El Impostor</span>
     </div>
+    <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema" title="Cambiar tema">
+      <!-- Sun / Moon icon toggled via CSS -->
+      <svg class="icon sun" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.8 1.42-1.42zm10.48 0l1.79-1.8 1.41 1.41-1.8 1.79-1.4-1.4zM12 4V1h-0v3h0zm0 19v-3h0v3h0zM4 12H1v0h3v0zm19 0h-3v0h3v0zM6.76 19.16l-1.42 1.42-1.79-1.8 1.41-1.41 1.8 1.79zm12.69-.38l1.41 1.41-1.79 1.8-1.41-1.42 1.79-1.79zM12 8a4 4 0 100 8 4 4 0 000-8z"/>
+      </svg>
+      <svg class="icon moon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M20.742 13.045A8.5 8.5 0 1111 3.258a7 7 0 109.742 9.787z"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- LANDING -->
+  <main id="landing" class="container">
+    <section class="glass card center">
+      <h1 class="display">Jugá en segundos</h1>
+      <p class="muted">Elegí cómo querés empezar</p>
+      <div class="row">
+        <button id="goCreateBtn" class="btn primary">Crear sala</button>
+        <button id="goJoinBtn" class="btn">Unirse a sala</button>
+      </div>
+    </section>
   </main>
 
   <!-- HOME / LOBBY -->
-  <main id="home" class="card hidden">
-    <h2>Lobby</h2>
+  <main id="home" class="container hidden">
+    <section class="glass card">
+      <h2>Lobby</h2>
 
-    <div class="row">
-      <input id="name" placeholder="Tu nombre (ej: Ian)" maxlength="32" />
-    </div>
+      <div class="row">
+        <input id="name" class="input" placeholder="Tu nombre (ej: Ian)" maxlength="32" />
+      </div>
 
-    <div id="rowCreate" class="row hidden">
-      <button id="createBtn">Crear sala</button>
-      <span id="roomCodeTag" class="tag" style="display:none"></span>
-    </div>
+      <div id="rowCreate" class="row hidden">
+        <button id="createBtn" class="btn primary">Crear sala</button>
+        <span id="roomCodeTag" class="chip" style="display:none"></span>
+      </div>
 
-    <div id="rowJoin" class="row hidden">
-      <input id="room" placeholder="Código de sala (ej: ABCD)" maxlength="8" />
-      <button id="joinBtn">Unirse</button>
-    </div>
+      <div id="rowJoin" class="row hidden">
+        <input id="room" class="input code" placeholder="Código de sala (ej: ABCD)" maxlength="8" />
+        <button id="joinBtn" class="btn">Unirse</button>
+      </div>
 
-    <div class="row">
-      <button id="startBtn">Iniciar juego</button>
-    </div>
+      <div class="divider"></div>
 
-    <div class="row">
-      <label for="impostors">Cantidad de impostores:</label>
-      <select id="impostors">
-        <option value="1" selected>1</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5</option>
-      </select>
-    </div>
+      <div class="row">
+        <button id="startBtn" class="btn success">Iniciar juego</button>
+      </div>
 
-    <div class="row" style="flex-direction:column;gap:8px;max-width:700px;margin-inline:auto">
-      <label for="pool">Lista personalizada (opcional) — una palabra por línea</label>
-      <textarea id="pool" rows="6" placeholder="Messi
+      <div class="row">
+        <label class="label" for="impostors">Cantidad de impostores</label>
+        <select id="impostors" class="input select">
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </div>
+
+      <div class="row col">
+        <label class="label" for="pool">Lista personalizada (opcional) — una palabra por línea</label>
+        <textarea id="pool" rows="6" class="input textarea" placeholder="Messi
 Maradona
-Riquelme" style="width:100%"></textarea>
-      <small class="muted">Solo el host puede editarla. Si la dejás vacía, se usa la base del servidor.</small>
-    </div>
+Riquelme"></textarea>
+        <small class="muted">Solo el host puede editarla. Si la dejás vacía, se usa la base del servidor.</small>
+      </div>
 
-    <p id="status">Jugadores en sala: 0</p>
-    <div id="hostBadge" class="muted"></div>
-    <ul id="playersList" style="list-style:none;padding-left:0;margin:8px 0 0 0;"></ul>
+      <div class="divider"></div>
+
+      <p id="status" class="status">Jugadores en sala: 0</p>
+      <div id="hostBadge" class="muted"></div>
+      <ul id="playersList" class="list"></ul>
+    </section>
   </main>
 
   <!-- GAME -->
-  <main id="game" class="card hidden">
-    <h2>Tu palabra es:</h2>
-    <p id="role" class="role-big">—</p>
+  <main id="game" class="container hidden">
+    <section class="glass card center">
+      <h2>Tu palabra es:</h2>
+      <p id="role" class="role-big">—</p>
 
-    <div id="revealBox" class="reveal hidden"></div>
+      <div id="revealBox" class="reveal hidden"></div>
 
-    <div class="row">
-      <button id="backBtn">Salir</button>
-      <button id="revealBtn">Revelar impostor</button>
-      <button id="nextBtn">Siguiente ronda</button>
-    </div>
+      <div class="row wrap">
+        <button id="backBtn" class="btn">Salir</button>
+        <button id="revealBtn" class="btn warn">Revelar impostor</button>
+        <button id="nextBtn" class="btn primary">Siguiente ronda</button>
+      </div>
+    </section>
   </main>
 
   <script src="client.js"></script>
