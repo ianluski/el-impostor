@@ -1,6 +1,5 @@
 // client.js
 const socket = io();
-console.log('[client] script cargado');
 
 let currentRoom = null;
 let myName = '';
@@ -55,7 +54,6 @@ function showLanding(){
   roomCodeTag.style.display = 'none';
   roomInput.value = '';
   hostBadge.textContent = '';
-  console.log('[UI] landing');
 }
 
 function showHome(mode){
@@ -72,14 +70,12 @@ function showHome(mode){
     rowJoin.classList.remove('hidden');
   }
   updateHostUI();
-  console.log('[UI] home modo =', mode);
 }
 
 function showGame(){
   landing.classList.add('hidden');
   home.classList.add('hidden');
   game.classList.remove('hidden');
-  console.log('[UI] game');
 }
 
 function showRoomCode(code){
@@ -92,7 +88,6 @@ function updateHostUI() {
   revealBtn.disabled = !isHost;
   nextBtn.disabled   = !isHost;
 
-  // Solo host puede editar la lista
   const disabledMsg = '(Solo el host puede editar esta lista)';
   if (!isHost) {
     poolTextarea.setAttribute('disabled', 'disabled');
@@ -103,8 +98,6 @@ function updateHostUI() {
       poolTextarea.placeholder = 'Messi\nMaradona\nRiquelme';
     }
   }
-
-  // Solo host puede cambiar cantidad de impostores
   impostorsSelect.disabled = !isHost;
 
   hostBadge.textContent = isHost
@@ -112,7 +105,6 @@ function updateHostUI() {
     : (currentRoom ? '(El host maneja: iniciar, revelar y siguiente ronda)' : '');
 }
 
-// Generar código de sala
 function genCode(){
   const A = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   let s = "";
@@ -120,20 +112,17 @@ function genCode(){
   return s;
 }
 
-// ====== LANDING eventos ======
+// ====== LANDING ======
 goCreateBtn.onclick = () => showHome('create');
 goJoinBtn.onclick   = () => showHome('join');
 
-// ====== HOME eventos ======
+// ====== HOME ======
 createBtn.onclick = () => {
-  console.log('[click] crear sala');
-  myName = (nameInput && nameInput.value || '').trim() || 'Jugador';
-  // Pedimos al servidor que cree una sala y nos devuelva el código
+  myName = (nameInput.value || '').trim() || 'Jugador';
   socket.emit('createRoom', { name: myName });
 };
 
 joinBtn.onclick = () => {
-  console.log('[click] unirse');
   const code = (roomInput.value || '').trim().toUpperCase();
   myName = (nameInput.value || '').trim() || 'Jugador';
   if (!code) return alert('Ingresá un código de sala');
@@ -143,7 +132,6 @@ joinBtn.onclick = () => {
 };
 
 startBtn.onclick = () => {
-  console.log('[click] iniciar');
   if (!currentRoom) return alert('Primero creá o unite a una sala');
   if (!isHost) return alert('Solo el host puede iniciar la partida.');
   const customPool = (poolTextarea.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
@@ -153,13 +141,11 @@ startBtn.onclick = () => {
 };
 
 revealBtn.onclick = () => {
-  console.log('[click] revelar');
   if (!currentRoom) return;
   socket.emit('reveal', currentRoom);
 };
 
 nextBtn.onclick = () => {
-  console.log('[click] siguiente ronda');
   if (!currentRoom) return;
   if (!isHost) return alert('Solo el host puede iniciar la siguiente ronda.');
   const customPool = (poolTextarea.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
@@ -171,19 +157,25 @@ nextBtn.onclick = () => {
 };
 
 backBtn.onclick = () => {
-  console.log('[click] salir');
   if (currentRoom) socket.emit('leaveRoom', currentRoom);
   showLanding();
 };
 
 // ====== Servidor → Cliente ======
+socket.on('roomCreated', ({ code }) => {
+  currentRoom = code;
+  showRoomCode(code);
+  isHost = true;
+  updateHostUI();
+  statusEl.textContent = 'Jugadores en sala: 1 (sos el host)';
+});
+
 socket.on('roomInfo', ({ code, isHost: hostFlag, hostName, players }) => {
   isHost = !!hostFlag;
   updateHostUI();
   statusEl.textContent = `Jugadores en sala: ${players}`;
   if (code) showRoomCode(code);
   hostBadge.textContent = isHost ? 'Sos el host' : `Host: ${hostName || 'Desconocido'}`;
-  console.log('[roomInfo]', { code, isHost, players });
 });
 
 socket.on('roomState', ({ count, names, hostName, poolCount, impostors }) => {
@@ -196,7 +188,15 @@ socket.on('roomState', ({ count, names, hostName, poolCount, impostors }) => {
   });
   if (!isHost && currentRoom) hostBadge.textContent = `Host: ${hostName || 'Desconocido'}`;
   if (typeof impostors !== 'undefined') impostorsSelect.value = String(impostors);
-  console.log('[roomState]', { count, names, hostName, poolCount, impostors });
+});
+
+socket.on('roundStarted', ({ round }) => {
+  // Si por algún motivo no llega 'role', pedimos sync
+  setTimeout(() => {
+    if (round > (lastRound || 0)) {
+      socket.emit('syncMe', currentRoom);
+    }
+  }, 700);
 });
 
 socket.on('role', (payload) => {
@@ -208,48 +208,34 @@ socket.on('role', (payload) => {
     round = payload.round || (lastRound + 1);
   }
 
-  if (round < lastRound) return;
+  if (round < lastRound) return; // evitar “viajes en el tiempo”
   lastRound = round;
 
   roleEl.textContent = word;
   showGame();
-  console.log('[role]', { word, round });
-});
-
-socket.on('roomCreated', ({ code }) => {
-  console.log('[roomCreated]', code);
-  currentRoom = code;
-  showRoomCode(code);
-  if (statusEl) statusEl.textContent = 'Jugadores en sala: 1 (sos el host)';
-  // aseguramos estado de host
-  isHost = true;
-  updateHostUI();
 });
 
 socket.on('revealResult', ({ impostorsNames, word }) => {
   const names = Array.isArray(impostorsNames) ? impostorsNames.join(', ') : String(impostorsNames || 'Desconocido');
   revealBox.textContent = `Impostores: ${names} — Palabra: ${word}`;
   revealBox.classList.remove('hidden');
-  console.log('[revealResult]', { impostorsNames, word });
 });
 
 socket.on('impostorsUpdated', ({ impostors }) => {
   impostorsSelect.value = String(impostors);
-  console.log('[impostorsUpdated]', impostors);
 });
 
 socket.on('notAllowed', (msg) => {
   alert(msg || 'Acción no permitida');
-  console.warn('[notAllowed]', msg);
 });
 
+// Auto-rejoin + sync en caliente
 socket.on('connect', () => {
-  console.log('[socket] conectado', socket.id);
   if (currentRoom && myName) {
     socket.emit('joinRoom', { code: currentRoom, name: myName });
+    socket.emit('syncMe', currentRoom);
   }
 });
-socket.on('connect_error', (e)=>console.error('[socket] error', e));
 
 // Arranque
 showLanding();
