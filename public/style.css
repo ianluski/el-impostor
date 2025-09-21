@@ -83,7 +83,7 @@ body{
 }
 
 .card{
-  width:min(820px, 92vw);
+  width:min(900px, 92vw);
   border-radius: var(--radius);
   padding:24px;
   display:grid; gap:16px; text-align:center;
@@ -160,21 +160,32 @@ body{
   font-weight:700;
 }
 
+.voting{
+  padding:16px;
+  border-radius:16px;
+  display:grid; gap:12px;
+}
+.targets{
+  display:flex; flex-wrap:wrap; gap:10px; justify-content:center;
+}
+.targets .target{
+  padding:8px 12px; border-radius:12px; background:var(--input-bg);
+  border:1px solid var(--border-col); cursor:pointer;
+}
+.targets .target.voted{ outline: 2px solid color-mix(in oklab, var(--accent) 45%, transparent) }
+
 .divider{
   height:1px; width:100%;
   background: linear-gradient(90deg, transparent, var(--border-col), transparent);
   margin: 6px 0 10px;
 }
 
-/* Subtle animated blobs (liquid glass aura) */
-body::before, body::after{
-  content:""; position:fixed; inset:auto; z-index:-1; filter: blur(45px); opacity:.28;
-  width:380px; height:380px; border-radius:50%;
-  background: radial-gradient(closest-side, var(--accent), transparent);
-  transform: translate(-20%, -10%);
+.scoreboard{
+  display:grid; gap:6px; justify-items:center;
 }
-body::after{
-  background: radial-gradient(closest-side, var(--accent-2), transparent);
-  right: -80px; bottom: -60px; left: auto; top: auto;
-  transform: unset;
+.scoreboard .row{
+  justify-content:space-between;
+  width:min(480px, 92%);
 }
+.score-name{font-weight:700}
+.score-points{font-variant-numeric: tabular-nums}
