@@ -16,7 +16,6 @@
       <span class="title">El Impostor</span>
     </div>
     <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema" title="Cambiar tema">
-      <!-- Sun / Moon icon toggled via CSS -->
       <svg class="icon sun" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.8 1.42-1.42zm10.48 0l1.79-1.8 1.41 1.41-1.8 1.79-1.4-1.4zM12 4V1h-0v3h0zm0 19v-3h0v3h0zM4 12H1v0h3v0zm19 0h-3v0h3v0zM6.76 19.16l-1.42 1.42-1.79-1.8 1.41-1.41 1.8 1.79zm12.69-.38l1.41 1.41-1.79 1.8-1.41-1.42 1.79-1.79zM12 8a4 4 0 100 8 4 4 0 000-8z"/>
       </svg>
@@ -74,6 +73,11 @@
         </select>
       </div>
 
+      <div class="row">
+        <label class="label" for="voteSeconds">Tiempo de votación (seg)</label>
+        <input id="voteSeconds" class="input" type="number" min="10" max="300" value="60" />
+      </div>
+
       <div class="row col">
         <label class="label" for="pool">Lista personalizada (opcional) — una palabra por línea</label>
         <textarea id="pool" rows="6" class="input textarea" placeholder="Messi
@@ -87,6 +91,9 @@ Riquelme"></textarea>
       <p id="status" class="status">Jugadores en sala: 0</p>
       <div id="hostBadge" class="muted"></div>
       <ul id="playersList" class="list"></ul>
+
+      <div class="divider"></div>
+      <div id="scoreLobby" class="scoreboard"></div>
     </section>
   </main>
 
@@ -96,13 +103,35 @@ Riquelme"></textarea>
       <h2>Tu palabra es:</h2>
       <p id="role" class="role-big">—</p>
 
+      <p class="muted" id="currentHostGame">Host: —</p>
+
+      <div class="divider"></div>
+
+      <!-- VOTING PANEL -->
+      <section id="votingPanel" class="voting glass hidden">
+        <h3>Votación</h3>
+        <p class="muted">Tiempo restante: <span id="voteCountdown">—</span></p>
+        <div id="voteTargets" class="targets"></div>
+        <p id="myVote" class="muted"></p>
+        <div class="row wrap">
+          <button id="startVoteBtn" class="btn primary">Iniciar votación</button>
+          <button id="endVoteBtn" class="btn warn">Cerrar votación</button>
+        </div>
+      </section>
+
+      <div id="voteResults" class="reveal hidden"></div>
+
       <div id="revealBox" class="reveal hidden"></div>
 
       <div class="row wrap">
         <button id="backBtn" class="btn">Salir</button>
         <button id="revealBtn" class="btn warn">Revelar impostor</button>
         <button id="nextBtn" class="btn primary">Siguiente ronda</button>
+        <button id="applyScoreBtn" class="btn success">Aplicar marcador</button>
       </div>
+
+      <div class="divider"></div>
+      <div id="scoreGame" class="scoreboard"></div>
     </section>
   </main>
 
