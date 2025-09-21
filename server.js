@@ -13,7 +13,7 @@ app.use(express.static(PUBLIC_DIR));
 app.get("/", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
 app.get("/health", (_req, res) => res.type("text").send("ok"));
 
-// ======= BASE de jugadores (podés ampliarla sin tocar nada más) =======
+// ======= BASE de jugadores por defecto =======
 const PLAYERS = [
   "Lionel Messi","Diego Maradona","Pelé","Johan Cruyff","Franz Beckenbauer",
   "Michel Platini","Zinedine Zidane","Ronaldinho","Ronaldo Nazário","Romário",
@@ -54,8 +54,12 @@ const PLAYERS = [
 //   hostId: socketId,
 //   last:{ impostorIds:string[], word:string, round:number } | null,
 //   round: number,
-//   pool: string[],        // lista personalizada del host (opcional)
-//   impostors: number      // cantidad de impostores (1..5)
+//   pool: string[],
+//   impostors: number,
+//   voteDuration: number (s),
+//   voting: { active, endsAt, votes:{voterId:targetId}, options:[ids], to? },
+//   scores: { [socketId]: number },
+//   lastVoteResult: { counts:{[targetId]:n}, topIds:string[] } | null
 // }
 const rooms = Object.create(null);
 
@@ -68,12 +72,15 @@ const genCode = () => {
 // Helpers para estado visible en lobby
 function buildRoomState(room) {
   const names = room.ids.map(id => room.names[id]).filter(Boolean);
+  const scores = room.ids.map(id => ({ name: room.names[id], points: room.scores[id] || 0 }));
   return {
     count: room.ids.length,
     names,
     hostName: room.names[room.hostId] || "Host",
     poolCount: (room.pool && room.pool.length) ? room.pool.length : 0,
-    impostors: room.impostors || 1
+    impostors: room.impostors || 1,
+    voteDuration: room.voteDuration || 60,
+    scores
   };
 }
 function broadcastRoomState(code) {
@@ -88,7 +95,43 @@ function sendCurrentRole(socket, room) {
   const { impostorIds, word, round } = room.last;
   const isImpostor = Array.isArray(impostorIds) && impostorIds.includes(socket.id);
   const myWord = isImpostor ? "IMPOSTOR" : word;
-  socket.emit("role", { word: myWord, round });
+  socket.emit("role", { word: myWord, round, hostName: room.names[room.hostId] || "Host" });
+}
+
+// ---- Votación: cierre y conteo
+function endVoteInternal(code) {
+  const room = rooms[code];
+  if (!room || !room.voting || !room.voting.active) return;
+
+  const { votes, options } = room.voting;
+  const counts = {};
+  (options || []).forEach(id => counts[id] = 0);
+  for (const voterId of Object.keys(votes)) {
+    const target = votes[voterId];
+    if (counts.hasOwnProperty(target)) counts[target] += 1;
+  }
+  let top = 0;
+  let topIds = [];
+  for (const id of Object.keys(counts)) {
+    if (counts[id] > top) {
+      top = counts[id];
+      topIds = [id];
+    } else if (counts[id] === top && top > 0) {
+      topIds.push(id);
+    }
+  }
+  room.lastVoteResult = { counts, topIds };
+  room.voting.active = false;
+  if (room.voting.to) {
+    clearTimeout(room.voting.to);
+    room.voting.to = null;
+  }
+
+  const results = Object.keys(counts).map(id => ({
+    id, name: room.names[id] || "?", count: counts[id]
+  })).sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name));
+
+  io.to(code).emit("voteEnded", { results, topIds });
 }
 
 // ======= Socket.IO =======
@@ -105,7 +148,11 @@ io.on("connection", (socket) => {
       last: null,
       round: 0,
       pool: [],
-      impostors: 1
+      impostors: 1,
+      voteDuration: 60,
+      voting: { active:false, endsAt:null, votes:{}, options:[], to:null },
+      scores: { [socket.id]: 0 },
+      lastVoteResult: null
     };
 
     socket.join(code);
@@ -132,13 +179,18 @@ io.on("connection", (socket) => {
         last: null,
         round: 0,
         pool: [],
-        impostors: 1
+        impostors: 1,
+        voteDuration: 60,
+        voting: { active:false, endsAt:null, votes:{}, options:[], to:null },
+        scores: {},
+        lastVoteResult: null
       };
     }
 
     const room = rooms[code];
     if (!room.ids.includes(socket.id)) room.ids.push(socket.id);
     room.names[socket.id] = (name || "Jugador").slice(0, 32);
+    if (room.scores[socket.id] == null) room.scores[socket.id] = 0;
 
     socket.join(code);
 
@@ -151,29 +203,27 @@ io.on("connection", (socket) => {
     });
     broadcastRoomState(code);
 
-    // Sincronizar al que entra si ya hay una ronda corriendo
+    // Sincronizar si ya hay una ronda corriendo
     sendCurrentRole(socket, room);
   });
 
-  // ---------- Guardar/Actualizar lista personalizada (SOLO HOST) ----------
+  // ---------- Guardar lista personalizada (SOLO HOST) ----------
   socket.on("setPool", ({ code, customPool }) => {
     const room = rooms[code];
     if (!room) return;
-
     if (room.hostId !== socket.id) {
       socket.emit("notAllowed", "Solo el host puede editar la lista personalizada.");
       return;
     }
-
     const pool = Array.isArray(customPool)
       ? customPool.map(s => String(s).trim()).filter(Boolean)
       : [];
-    room.pool = pool; // puede ser []; se usará PLAYERS como fallback
+    room.pool = pool;
     socket.emit("poolSaved", { count: room.pool.length });
     broadcastRoomState(code);
   });
 
-  // ---------- Selección de cantidad de impostores (SOLO HOST) ----------
+  // ---------- Cantidad de impostores (SOLO HOST) ----------
   socket.on("setImpostors", ({ code, impostors }) => {
     const room = rooms[code];
     if (!room) return;
@@ -189,6 +239,22 @@ io.on("connection", (socket) => {
     broadcastRoomState(code);
   });
 
+  // ---------- Duración de votación (SOLO HOST) ----------
+  socket.on("setVoteDuration", ({ code, seconds }) => {
+    const room = rooms[code];
+    if (!room) return;
+    if (room.hostId !== socket.id) {
+      socket.emit("notAllowed", "Solo el host puede cambiar el temporizador de votación.");
+      return;
+    }
+    let s = parseInt(seconds, 10);
+    if (!Number.isFinite(s)) s = 60;
+    s = Math.max(10, Math.min(300, s)); // entre 10s y 5min
+    room.voteDuration = s;
+    io.to(code).emit("voteDurationUpdated", { seconds: s });
+    broadcastRoomState(code);
+  });
+
   // ---------- Iniciar/siguiente ronda (SOLO HOST) ----------
   socket.on("startGame", ({ code, customPool }) => {
     const room = rooms[code];
@@ -199,7 +265,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Limpiar ids zombies (sockets que ya no existen)
+    // limpiar ids zombies
     room.ids = room.ids.filter(id => io.sockets.sockets.has(id));
 
     const ids = room.ids || [];
@@ -208,24 +274,30 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Si el host manda una lista ahora, la guardamos
+    // Cancelar votación previa si quedó activa
+    if (room.voting && room.voting.active) {
+      room.voting.active = false;
+      if (room.voting.to) clearTimeout(room.voting.to);
+      room.voting.to = null;
+    }
+    room.lastVoteResult = null;
+
+    // actualizar pool si se manda
     if (Array.isArray(customPool) && customPool.length) {
       const cleaned = customPool.map(s => String(s).trim()).filter(Boolean);
       room.pool = cleaned;
     }
-
-    // Pool efectiva
     const poolToUse = (room.pool && room.pool.length) ? room.pool : PLAYERS;
 
-    // Cantidad de impostores válida: 1..5 y < jugadores
+    // impostores válidos
     const desired = room.impostors || 1;
     const maxAllowed = Math.min(5, Math.max(1, ids.length - 1));
     const impostorQty = Math.max(1, Math.min(desired, maxAllowed));
 
-    // Número de ronda
+    // ronda
     room.round = (room.round || 0) + 1;
 
-    // Elegir impostores únicos
+    // sorteo impostores
     const order = [...ids.keys()];
     for (let i = order.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -237,15 +309,110 @@ io.on("connection", (socket) => {
     const secretWord = poolToUse[Math.floor(Math.random() * poolToUse.length)];
     room.last = { impostorIds, word: secretWord, round: room.round };
 
-    // Aviso de ronda (para que clientes pidan sync si se lo pierden)
+    // anuncio de ronda
     io.to(code).emit("roundStarted", { round: room.round });
 
-    // Envío de roles individual
+    // envío de roles (incluye hostName)
     ids.forEach((id, i) => {
       const word = impostorIndexes.has(i) ? "IMPOSTOR" : secretWord;
-      io.to(id).emit("role", { word, round: room.round });
+      io.to(id).emit("role", { word, round: room.round, hostName: room.names[room.hostId] || "Host" });
     });
 
+    broadcastRoomState(code);
+  });
+
+  // ---------- Iniciar votación (SOLO HOST) ----------
+  socket.on("startVote", ({ code }) => {
+    const room = rooms[code];
+    if (!room) return;
+    if (room.hostId !== socket.id) {
+      socket.emit("notAllowed", "Solo el host puede iniciar la votación.");
+      return;
+    }
+    if (!room.last) {
+      socket.emit("notAllowed", "Primero debés iniciar una ronda.");
+      return;
+    }
+    // limpiar ids zombies
+    room.ids = room.ids.filter(id => io.sockets.sockets.has(id));
+
+    const seconds = room.voteDuration || 60;
+    const endsAt = Date.now() + seconds * 1000;
+    room.voting = {
+      active: true,
+      endsAt,
+      votes: {},
+      options: [...room.ids],
+      to: setTimeout(() => endVoteInternal(code), seconds * 1000)
+    };
+
+    const players = room.ids.map(id => ({ id, name: room.names[id] || "?" }));
+    io.to(code).emit("voteStarted", { seconds, endsAt, players });
+  });
+
+  // ---------- Votar (todos) ----------
+  socket.on("castVote", ({ code, targetId }) => {
+    const room = rooms[code];
+    if (!room || !room.voting || !room.voting.active) return;
+
+    // debe ser jugador de la sala
+    if (!room.ids.includes(socket.id)) return;
+
+    // objetivo válido
+    if (!room.voting.options.includes(targetId)) return;
+
+    room.voting.votes[socket.id] = targetId;
+    io.to(socket.id).emit("voteAck", { targetId });
+  });
+
+  // ---------- Cerrar votación (SOLO HOST, opcional, server igual cierra solo) ----------
+  socket.on("endVote", ({ code }) => {
+    const room = rooms[code];
+    if (!room) return;
+    if (room.hostId !== socket.id) {
+      socket.emit("notAllowed", "Solo el host puede cerrar la votación.");
+      return;
+    }
+    endVoteInternal(code);
+  });
+
+  // ---------- Aplicar marcador (SOLO HOST) ----------
+  socket.on("finalizeRound", ({ code }) => {
+    const room = rooms[code];
+    if (!room) return;
+    if (room.hostId !== socket.id) {
+      socket.emit("notAllowed", "Solo el host puede aplicar el marcador.");
+      return;
+    }
+    if (!room.last || !room.lastVoteResult) {
+      socket.emit("notAllowed", "Falta resultado de votación o de ronda.");
+      return;
+    }
+
+    const { impostorIds } = room.last;
+    const { topIds } = room.lastVoteResult;
+
+    const setImpostors = new Set(impostorIds || []);
+    let villagersWin = false;
+    for (const id of topIds) {
+      if (setImpostors.has(id)) { villagersWin = true; break; }
+    }
+
+    // sumar puntos
+    if (villagersWin) {
+      // +1 a todos los no-impostores presentes
+      for (const id of room.ids) {
+        if (!setImpostors.has(id)) room.scores[id] = (room.scores[id] || 0) + 1;
+      }
+    } else {
+      // +1 a todos los impostores presentes
+      for (const id of room.ids) {
+        if (setImpostors.has(id)) room.scores[id] = (room.scores[id] || 0) + 1;
+      }
+    }
+
+    const table = room.ids.map(id => ({ name: room.names[id] || "?", points: room.scores[id] || 0 }));
+    io.to(code).emit("scoreUpdated", { scores: table, villagersWin });
     broadcastRoomState(code);
   });
 
@@ -253,7 +420,6 @@ io.on("connection", (socket) => {
   socket.on("reveal", (code) => {
     const room = rooms[code];
     if (!room || !room.last) return;
-
     if (room.hostId !== socket.id) {
       socket.emit("notAllowed", "Solo el host puede revelar.");
       return;
@@ -264,29 +430,31 @@ io.on("connection", (socket) => {
     io.to(code).emit("revealResult", { impostorsNames, word });
   });
 
-  // ---------- Sync bajo demanda del cliente ----------
+  // ---------- Sync bajo demanda ----------
   socket.on("syncMe", (code) => {
     const room = rooms[code];
     if (!room) return;
-    // Asegurar que figura en la sala
     if (!room.ids.includes(socket.id)) {
       room.ids.push(socket.id);
       room.names[socket.id] ??= "Jugador";
+      if (room.scores[socket.id] == null) room.scores[socket.id] = 0;
       socket.join(code);
       broadcastRoomState(code);
     }
     sendCurrentRole(socket, room);
   });
 
-  // ---------- Salir de sala ----------
+  // ---------- Salir ----------
   socket.on("leaveRoom", (code) => {
     const room = rooms[code];
     if (!room) return;
 
     room.ids = room.ids.filter(id => id !== socket.id);
     delete room.names[socket.id];
+    delete room.scores[socket.id];
 
     if (!room.ids.length) {
+      if (room.voting && room.voting.to) clearTimeout(room.voting.to);
       delete rooms[code];
       return;
     }
@@ -306,8 +474,10 @@ io.on("connection", (socket) => {
       const before = room.ids.length;
       room.ids = room.ids.filter(id => id !== socket.id);
       delete room.names[socket.id];
+      delete room.scores[socket.id];
 
       if (!room.ids.length) {
+        if (room.voting && room.voting.to) clearTimeout(room.voting.to);
         delete rooms[code];
         continue;
       }
