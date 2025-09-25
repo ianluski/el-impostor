@@ -1,140 +1,86 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="dark">
+<html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
   <title>El Impostor</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="/socket.io/socket.io.js"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <button id="themeToggle" class="theme-btn">🌙</button>
 
-  <!-- TOP BAR -->
-  <header class="topbar glass">
-    <div class="brand">
-      <span class="logo">⚽</span>
-      <span class="title">El Impostor</span>
+  <!-- Landing -->
+  <section id="landing">
+    <h1>⚽ El Impostor</h1>
+    <button id="goCreateBtn" class="btn primary">Crear sala</button>
+    <button id="goJoinBtn" class="btn">Unirse a sala</button>
+  </section>
+
+  <!-- Home / Lobby -->
+  <section id="home" class="hidden">
+    <h2>Lobby</h2>
+    <div id="hostBadge" class="muted"></div>
+    <div>
+      <input id="name" placeholder="Tu nombre">
     </div>
-    <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema" title="Cambiar tema">
-      <svg class="icon sun" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.8 1.42-1.42zm10.48 0l1.79-1.8 1.41 1.41-1.8 1.79-1.4-1.4zM12 4V1h-0v3h0zm0 19v-3h0v3h0zM4 12H1v0h3v0zm19 0h-3v0h3v0zM6.76 19.16l-1.42 1.42-1.79-1.8 1.41-1.41 1.8 1.79zm12.69-.38l1.41 1.41-1.79 1.8-1.41-1.42 1.79-1.79zM12 8a4 4 0 100 8 4 4 0 000-8z"/>
-      </svg>
-      <svg class="icon moon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M20.742 13.045A8.5 8.5 0 1111 3.258a7 7 0 109.742 9.787z"/>
-      </svg>
-    </button>
-  </header>
+    <div id="rowCreate">
+      <button id="createBtn" class="btn primary">Crear</button>
+    </div>
+    <div id="rowJoin" class="hidden">
+      <input id="room" placeholder="Código de sala">
+      <button id="joinBtn" class="btn">Unirse</button>
+    </div>
+    <div>
+      <textarea id="pool" placeholder="Lista personalizada (solo host)"></textarea>
+    </div>
+    <div>
+      <label>Impostores:</label>
+      <select id="impostors">
+        <option value="1">1</option><option value="2">2</option>
+        <option value="3">3</option><option value="4">4</option>
+        <option value="5">5</option>
+      </select>
+    </div>
+    <div>
+      <label>Tiempo de votación (s):</label>
+      <input id="voteSeconds" type="number" value="30" min="10" max="120">
+    </div>
+    <div>
+      <button id="startBtn" class="btn primary">Iniciar juego</button>
+    </div>
+    <p id="roomCodeTag" class="muted"></p>
+    <p id="status"></p>
+    <ul id="playersList"></ul>
+    <div id="scoreLobby"></div>
+  </section>
 
-  <!-- LANDING -->
-  <main id="landing" class="container">
-    <section class="glass card center">
-      <h1 class="display">Jugá en segundos</h1>
-      <p class="muted">Elegí cómo querés empezar</p>
-      <div class="row">
-        <button id="goCreateBtn" class="btn primary">Crear sala</button>
-        <button id="goJoinBtn" class="btn">Unirse a sala</button>
-      </div>
-    </section>
-  </main>
+  <!-- Juego -->
+  <section id="game" class="hidden">
+    <h2 id="role"></h2>
+    <p id="currentHostGame" class="muted"></p>
+    <div id="revealBox" class="hidden"></div>
+    <div class="row wrap">
+      <button id="revealBtn" class="btn">Revelar</button>
+      <button id="nextBtn" class="btn primary">Siguiente ronda</button>
+      <button id="backBtn" class="btn warn">Salir</button>
+    </div>
+    <div id="scoreGame"></div>
 
-  <!-- HOME / LOBBY -->
-  <main id="home" class="container hidden">
-    <section class="glass card">
-      <h2>Lobby</h2>
-
-      <div class="row">
-        <input id="name" class="input" placeholder="Tu nombre (ej: Ian)" maxlength="32" />
-      </div>
-
-      <div id="rowCreate" class="row hidden">
-        <button id="createBtn" class="btn primary">Crear sala</button>
-        <span id="roomCodeTag" class="chip" style="display:none"></span>
-      </div>
-
-      <div id="rowJoin" class="row hidden">
-        <input id="room" class="input code" placeholder="Código de sala (ej: ABCD)" maxlength="8" />
-        <button id="joinBtn" class="btn">Unirse</button>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="row">
-        <button id="startBtn" class="btn success">Iniciar juego</button>
-      </div>
-
-      <div class="row">
-        <label class="label" for="impostors">Cantidad de impostores</label>
-        <select id="impostors" class="input select">
-          <option value="1" selected>1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-          <option value="5">5</option>
-        </select>
-      </div>
-
-      <div class="row">
-        <label class="label" for="voteSeconds">Tiempo de votación (seg)</label>
-        <input id="voteSeconds" class="input" type="number" min="10" max="300" value="60" />
-      </div>
-
-      <div class="row col">
-        <label class="label" for="pool">Lista personalizada (opcional) — una palabra por línea</label>
-        <textarea id="pool" rows="6" class="input textarea" placeholder="Messi
-Maradona
-Riquelme"></textarea>
-        <small class="muted">Solo el host puede editarla. Si la dejás vacía, se usa la base del servidor.</small>
-      </div>
-
-      <div class="divider"></div>
-
-      <p id="status" class="status">Jugadores en sala: 0</p>
-      <div id="hostBadge" class="muted"></div>
-      <ul id="playersList" class="list"></ul>
-
-      <div class="divider"></div>
-      <div id="scoreLobby" class="scoreboard"></div>
-    </section>
-  </main>
-
-  <!-- GAME -->
-  <main id="game" class="container hidden">
-    <section class="glass card center">
-      <h2>Tu palabra es:</h2>
-      <p id="role" class="role-big">—</p>
-
-      <p class="muted" id="currentHostGame">Host: —</p>
-
-      <div class="divider"></div>
-
-      <!-- VOTING PANEL -->
-      <section id="votingPanel" class="voting glass hidden">
-        <h3>Votación</h3>
-        <p class="muted">Tiempo restante: <span id="voteCountdown">—</span></p>
-        <div id="voteTargets" class="targets"></div>
-        <p id="myVote" class="muted"></p>
-        <div class="row wrap">
-          <button id="startVoteBtn" class="btn primary">Iniciar votación</button>
-          <button id="endVoteBtn" class="btn warn">Cerrar votación</button>
-        </div>
-      </section>
-
-      <div id="voteResults" class="reveal hidden"></div>
-
-      <div id="revealBox" class="reveal hidden"></div>
-
+    <!-- Panel de votación -->
+    <section id="votingPanel" class="hidden glass">
+      <h2>Votación</h2>
+      <p>Tiempo restante: <span id="voteCountdown">—</span></p>
+      <div id="voteTargets" class="row wrap"></div>
+      <p id="myVote" class="muted"></p>
       <div class="row wrap">
-        <button id="backBtn" class="btn">Salir</button>
-        <button id="revealBtn" class="btn warn">Revelar impostor</button>
-        <button id="nextBtn" class="btn primary">Siguiente ronda</button>
-        <button id="applyScoreBtn" class="btn success">Aplicar marcador</button>
+        <button id="startVoteBtn" class="btn primary">Iniciar votación</button>
+        <button id="endVoteBtn" class="btn warn">Forzar fin</button>
       </div>
-
-      <div class="divider"></div>
-      <div id="scoreGame" class="scoreboard"></div>
+      <div id="voteResults" class="hidden"></div>
+      <button id="applyScoreBtn" class="btn success hidden">Aplicar marcador</button>
     </section>
-  </main>
+  </section>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
 </body>
 </html>
