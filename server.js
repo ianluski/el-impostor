@@ -39,7 +39,7 @@ io.on("connection", (socket) => {
       round: 0,
       currentWord: null,
       impostorIds: [],
-      eliminated: [],   // jugadores eliminados en la ronda
+      eliminated: [],
       voting: null
     };
 
@@ -62,19 +62,16 @@ io.on("connection", (socket) => {
     const room = rooms[code];
     if (!room || socket.id !== room.host) return;
 
-    // reset
     room.eliminated = [];
 
     const pool = room.pool.length ? room.pool : DEFAULT_POOL;
     const word = pool[Math.floor(Math.random() * pool.length)];
 
-    // elegir impostores
     const shuffled = [...room.ids].sort(() => Math.random() - 0.5);
     room.impostorIds = shuffled.slice(0, room.impostors);
     room.currentWord = word;
     room.round++;
 
-    // enviar roles
     room.ids.forEach((id) => {
       const roleWord = room.impostorIds.includes(id) ? "IMPOSTOR" : word;
       io.to(id).emit("role", { word: roleWord, hostName: room.names[room.host] });
@@ -87,7 +84,7 @@ io.on("connection", (socket) => {
 
     room.voting = { active: true, votes: {} };
     const players = room.ids
-      .filter(id => !room.eliminated.includes(id)) // no incluir eliminados
+      .filter(id => !room.eliminated.includes(id))
       .map(id => ({ id, name: room.names[id] }));
 
     io.to(code).emit("voteStarted", { players });
@@ -96,7 +93,7 @@ io.on("connection", (socket) => {
   socket.on("castVote", ({ code, targetId }) => {
     const room = rooms[code];
     if (!room || !room.voting?.active) return;
-    if (room.eliminated.includes(targetId)) return; // no se puede votar a eliminados
+    if (room.eliminated.includes(targetId)) return;
 
     room.voting.votes[socket.id] = targetId;
 
@@ -110,61 +107,58 @@ io.on("connection", (socket) => {
     if (!room || socket.id !== room.host) return;
     endVote(code);
   });
-function endVote(code) {
-  const room = rooms[code];
-  if (!room || !room.voting?.active) return;
-  room.voting.active = false;
 
-  // contar votos
-  const counts = {};
-  for (const target of Object.values(room.voting.votes)) {
-    counts[target] = (counts[target] || 0) + 1;
-  }
+  function endVote(code) {
+    const room = rooms[code];
+    if (!room || !room.voting?.active) return;
+    room.voting.active = false;
 
-  let max = 0;
-  let top = [];
-  for (const [id, c] of Object.entries(counts)) {
-    if (c > max) {
-      max = c;
-      top = [id];
-    } else if (c === max) {
-      top.push(id);
+    const counts = {};
+    for (const target of Object.values(room.voting.votes)) {
+      counts[target] = (counts[target] || 0) + 1;
     }
-  }
 
-  let message, impostorFound = false;
+    let max = 0;
+    let top = [];
+    for (const [id, c] of Object.entries(counts)) {
+      if (c > max) {
+        max = c;
+        top = [id];
+      } else if (c === max) {
+        top.push(id);
+      }
+    }
 
-  if (top.length !== 1) {
-    message = "No se encontró al impostor. La ronda continúa.";
-  } else {
-    const votedId = top[0];
-    const votedName = room.names[votedId];
-    if (room.impostorIds.includes(votedId)) {
-      message = `${votedName} era el impostor. Ronda terminada.`;
+    let message, impostorFound = false;
+
+    if (top.length !== 1) {
+      message = "No se encontró al impostor. La ronda continúa.";
+    } else {
+      const votedId = top[0];
+      const votedName = room.names[votedId];
+      if (room.impostorIds.includes(votedId)) {
+        message = `${votedName} era el impostor. Ronda terminada.`;
+        impostorFound = true;
+        room.currentWord = null;
+        room.impostorIds = [];
+      } else {
+        room.eliminated.push(votedId);
+        message = `${votedName} no era el impostor y fue eliminado. La ronda continúa.`;
+      }
+    }
+
+    const activos = room.ids.filter(id => !room.eliminated.includes(id));
+    if (activos.length <= 2 && !impostorFound) {
+      const impostorNombres = room.impostorIds.map(id => room.names[id]);
+      const label = impostorNombres.length > 1 ? "Ganaron" : "Ganó";
+      message = `${label} ${impostorNombres.join(", ")}.`;
       impostorFound = true;
       room.currentWord = null;
       room.impostorIds = [];
-    } else {
-      // jugador inocente eliminado
-      room.eliminated.push(votedId);
-      message = `${votedName} no era el impostor y fue eliminado. La ronda continúa.`;
     }
+
+    io.to(code).emit("voteResult", { message, impostorFound });
   }
-
-  // verificar si quedan solo 2 jugadores (incluyendo impostor)
-  const activos = room.ids.filter(id => !room.eliminated.includes(id));
-  if (activos.length <= 2 && !impostorFound) {
-    const impostorNombres = room.impostorIds.map(id => room.names[id]);
-    const label = impostorNombres.length > 1 ? "Ganaron" : "Ganó";
-    message = `${label} ${impostorNombres.join(", ")}.`;
-    impostorFound = true;
-    room.currentWord = null;
-    room.impostorIds = [];
-  }
-
-  io.to(code).emit("voteResult", { message, impostorFound });
-}
-
 
   socket.on("disconnect", () => {
     for (const [code, room] of Object.entries(rooms)) {
