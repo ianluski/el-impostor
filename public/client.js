@@ -32,6 +32,7 @@ const voteTargets = document.getElementById("voteTargets");
 const voteBtn = document.getElementById("voteBtn");
 const voteMessage = document.getElementById("voteMessage");
 const backToGameBtn = document.getElementById("backToGameBtn");
+const nextRoundBtn = document.getElementById("nextRoundBtn");
 
 // Navegación
 document.getElementById("goCreateBtn").onclick = () => { landing.classList.add("hidden"); home.classList.remove("hidden"); };
@@ -77,6 +78,7 @@ voteBtn.onclick = () => {
 backToGameBtn.onclick = () => {
   voteOutcome.classList.add("hidden");
   game.classList.remove("hidden");
+  nextRoundBtn.classList.add("hidden");
 };
 
 // ===== SOCKET EVENTS =====
@@ -126,8 +128,16 @@ socket.on("voteStarted", ({ players }) => {
     voteTargets.appendChild(btn);
   });
 });
-socket.on("voteResult", ({ message }) => {
+socket.on("voteResult", ({ message, impostorFound }) => {
   voteScreen.classList.add("hidden");
   voteOutcome.classList.remove("hidden");
   voteMessage.textContent = message;
+
+  if (isHost && impostorFound) {
+    nextRoundBtn.classList.remove("hidden");
+    nextRoundBtn.onclick = () => {
+      socket.emit("startRound", { code: currentRoom });
+      voteOutcome.classList.add("hidden");
+    };
+  }
 });
