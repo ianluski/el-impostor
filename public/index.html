@@ -29,7 +29,7 @@
       <ul id="playersList"></ul>
     </section>
 
-    <!-- Game -->
+    <!-- Juego -->
     <section id="game" class="card hidden">
       <div id="currentHostGame" class="muted">Host: —</div>
       <h2 id="role">—</h2>
@@ -52,7 +52,10 @@
     <section id="voteOutcome" class="card hidden">
       <h2>Resultado</h2>
       <p id="voteMessage"></p>
-      <button id="backToGameBtn" class="btn success">Volver</button>
+      <div class="row">
+        <button id="backToGameBtn" class="btn">Volver</button>
+        <button id="nextRoundBtn" class="btn success hidden">Siguiente ronda</button>
+      </div>
     </section>
   </div>
 
