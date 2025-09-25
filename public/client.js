@@ -31,7 +31,6 @@ const hostGame = document.getElementById("currentHostGame");
 const voteTargets = document.getElementById("voteTargets");
 const voteBtn = document.getElementById("voteBtn");
 const voteMessage = document.getElementById("voteMessage");
-const backToGameBtn = document.getElementById("backToGameBtn");
 const nextRoundBtn = document.getElementById("nextRoundBtn");
 
 // Navegación
@@ -72,13 +71,6 @@ voteBtn.onclick = () => {
   socket.emit("castVote", { code: currentRoom, targetId: selectedVote });
   voteBtn.disabled = true;
   voteBtn.textContent = "Voto enviado";
-};
-
-// Volver al juego tras resultado
-backToGameBtn.onclick = () => {
-  voteOutcome.classList.add("hidden");
-  game.classList.remove("hidden");
-  nextRoundBtn.classList.add("hidden");
 };
 
 // ===== SOCKET EVENTS =====
@@ -141,16 +133,11 @@ socket.on("voteResult", ({ message, impostorFound }) => {
       game.classList.remove("hidden");
       nextRoundBtn.classList.add("hidden");
     };
-  } else if (!isHost) {
-    // Los demás jugadores esperan a que el host inicie la siguiente ronda
-    nextRoundBtn.classList.add("hidden");
-  }
-
-  // Si no se descubrió al impostor, todos vuelven automáticamente al juego
-  if (!impostorFound) {
+  } else if (!impostorFound) {
+    // todos vuelven automáticamente después de un breve delay
     setTimeout(() => {
       voteOutcome.classList.add("hidden");
       game.classList.remove("hidden");
-    }, 2000);
+    }, 2500);
   }
 });
