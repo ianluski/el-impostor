@@ -5,11 +5,10 @@ let currentRoom = null;
 let myName = '';
 let isHost = false;
 let lastRound = 0;
-let homeMode = null; // 'create' | 'join'
 
 const $ = (s)=>document.querySelector(s);
 
-// ===== THEME =====
+// THEME
 const rootEl = document.documentElement;
 const themeToggleBtn = document.getElementById('themeToggle');
 function applyTheme(theme){
@@ -32,39 +31,35 @@ if (themeToggleBtn) {
   });
 }
 
-// ===== PANTALLAS =====
+// PANTALLAS
 const landing = $('#landing');
 const home = $('#home');
 const game = $('#game');
 
-// LANDING
-const goCreateBtn = $('#goCreateBtn');
-const goJoinBtn   = $('#goJoinBtn');
-
 // HOME
-const nameInput    = $('#name');
-const rowCreate    = $('#rowCreate');
-const rowJoin      = $('#rowJoin');
-const createBtn    = $('#createBtn');
-const joinBtn      = $('#joinBtn');
-const startBtn     = $('#startBtn');
-const roomInput    = $('#room');
+const nameInput = $('#name');
+const rowCreate = $('#rowCreate');
+const rowJoin = $('#rowJoin');
+const createBtn = $('#createBtn');
+const joinBtn = $('#joinBtn');
+const startBtn = $('#startBtn');
+const roomInput = $('#room');
 const poolTextarea = $('#pool');
-const roomCodeTag  = $('#roomCodeTag');
-const statusEl     = $('#status');
-const hostBadge    = $('#hostBadge');
-const playersList  = $('#playersList');
+const roomCodeTag = $('#roomCodeTag');
+const statusEl = $('#status');
+const hostBadge = $('#hostBadge');
+const playersList = $('#playersList');
 const impostorsSelect = $('#impostors');
 const voteSecondsInput = $('#voteSeconds');
-const scoreLobby   = $('#scoreLobby');
+const scoreLobby = $('#scoreLobby');
 
 // GAME
-const roleEl     = $('#role');
-const revealBox  = $('#revealBox');
-const backBtn    = $('#backBtn');
-const revealBtn  = $('#revealBtn');
-const nextBtn    = $('#nextBtn');
-const scoreGame  = $('#scoreGame');
+const roleEl = $('#role');
+const revealBox = $('#revealBox');
+const backBtn = $('#backBtn');
+const revealBtn = $('#revealBtn');
+const nextBtn = $('#nextBtn');
+const scoreGame = $('#scoreGame');
 const currentHostGame = $('#currentHostGame');
 
 // VOTING
@@ -77,7 +72,9 @@ const endVoteBtn = $('#endVoteBtn');
 const voteResults = $('#voteResults');
 const applyScoreBtn = $('#applyScoreBtn');
 
-// ====== UI helpers ======
+let voteTimer = null;
+
+// UI
 function showLanding(){
   landing.classList.remove('hidden');
   home.classList.add('hidden');
@@ -85,11 +82,9 @@ function showLanding(){
   currentRoom = null;
   lastRound = 0;
   isHost = false;
-  homeMode = null;
   statusEl.textContent = 'Jugadores en sala: 0';
   playersList.innerHTML = '';
-  roomCodeTag.style.display = 'none';
-  roomInput.value = '';
+  roomCodeTag.textContent = '';
   hostBadge.textContent = '';
   scoreLobby.innerHTML = '';
   scoreGame.innerHTML = '';
@@ -98,14 +93,11 @@ function showLanding(){
 }
 
 function showHome(mode){
-  homeMode = mode;
   landing.classList.add('hidden');
   game.classList.add('hidden');
   home.classList.remove('hidden');
-
   rowCreate.classList.toggle('hidden', mode !== 'create');
   rowJoin.classList.toggle('hidden', mode !== 'join');
-
   updateHostUI();
 }
 
@@ -115,30 +107,20 @@ function showGame(){
   game.classList.remove('hidden');
 }
 
-function showRoomCode(code){
-  roomCodeTag.style.display = 'inline-block';
-  roomCodeTag.textContent = `Sala: ${code}`;
-}
-
-function updateHostUI() {
-  startBtn.disabled  = !isHost;
+function updateHostUI(){
+  startBtn.disabled = !isHost;
   revealBtn.disabled = !isHost;
-  nextBtn.disabled   = !isHost;
+  nextBtn.disabled = !isHost;
   startVoteBtn.disabled = !isHost;
   endVoteBtn.disabled = !isHost;
   applyScoreBtn.disabled = !isHost;
-
   poolTextarea.disabled = !isHost;
   impostorsSelect.disabled = !isHost;
   voteSecondsInput.disabled = !isHost;
-
-  hostBadge.textContent = isHost
-    ? 'Sos el host'
-    : (currentRoom ? '(El host maneja la partida)' : '');
+  hostBadge.textContent = isHost ? 'Sos el host' : '(El host maneja la partida)';
 }
 
-// ===== VOTING =====
-let voteTimer = null;
+// VOTING
 function resetVotingUI(){
   votingPanel.classList.add('hidden');
   voteResults.classList.add('hidden');
@@ -165,34 +147,30 @@ function renderScoreboard(container, table){
   container.innerHTML = '';
   (table || []).forEach(({name, points}) => {
     const row = document.createElement('div');
-    row.className = 'row';
-    row.innerHTML = `<div class="score-name">${name}</div><div class="score-points">${points}</div>`;
+    row.textContent = `${name}: ${points}`;
     container.appendChild(row);
   });
 }
 
-// ====== LANDING ======
-goCreateBtn.onclick = () => showHome('create');
-goJoinBtn.onclick   = () => showHome('join');
+// LANDING eventos
+$('#goCreateBtn').onclick = () => showHome('create');
+$('#goJoinBtn').onclick = () => showHome('join');
 
-// ====== HOME ======
+// HOME eventos
 createBtn.onclick = () => {
   myName = (nameInput.value || '').trim() || 'Jugador';
   socket.emit('createRoom', { name: myName });
 };
-
 joinBtn.onclick = () => {
   const code = (roomInput.value || '').trim().toUpperCase();
   myName = (nameInput.value || '').trim() || 'Jugador';
   if (!code) return alert('Ingresá un código de sala');
   currentRoom = code;
   socket.emit('joinRoom', { code, name: myName });
-  showRoomCode(code);
 };
-
 startBtn.onclick = () => {
-  if (!currentRoom) return alert('Primero creá o unite a una sala');
-  if (!isHost) return alert('Solo el host puede iniciar la partida.');
+  if (!currentRoom) return;
+  if (!isHost) return;
   const customPool = (poolTextarea.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
   socket.emit('setPool', { code: currentRoom, customPool });
   socket.emit('setImpostors', { code: currentRoom, impostors: impostorsSelect.value });
@@ -200,56 +178,43 @@ startBtn.onclick = () => {
   socket.emit('startGame', { code: currentRoom });
 };
 
-// ====== GAME / Voting ======
-startVoteBtn.onclick = () => {
-  if (!isHost) return;
-  socket.emit('startVote', { code: currentRoom });
-};
-endVoteBtn.onclick = () => {
-  if (!isHost) return;
-  socket.emit('endVote', { code: currentRoom });
-};
-applyScoreBtn.onclick = () => {
-  if (!isHost) return;
-  socket.emit('finalizeRound', { code: currentRoom });
-};
+// GAME eventos
+startVoteBtn.onclick = () => { if(isHost) socket.emit('startVote', { code: currentRoom }); };
+endVoteBtn.onclick = () => { if(isHost) socket.emit('endVote', currentRoom); };
+applyScoreBtn.onclick = () => { if(isHost) socket.emit('finalizeRound', { code: currentRoom }); };
+revealBtn.onclick = () => socket.emit('reveal', currentRoom);
+nextBtn.onclick = () => { if(isHost) socket.emit('startGame', { code: currentRoom }); };
+backBtn.onclick = () => { socket.emit('leaveRoom', currentRoom); showLanding(); };
 
-revealBtn.onclick = () => {
-  socket.emit('reveal', currentRoom);
-};
-nextBtn.onclick = () => {
-  if (!isHost) return;
-  socket.emit('startGame', { code: currentRoom });
-};
-backBtn.onclick = () => {
-  socket.emit('leaveRoom', currentRoom);
-  showLanding();
-};
-
-// ====== SOCKET EVENTS ======
+// SOCKET
 socket.on('roomCreated', ({ code }) => {
   currentRoom = code;
-  showRoomCode(code);
   isHost = true;
   updateHostUI();
+  roomCodeTag.textContent = `Sala: ${code}`;
 });
 
-socket.on('roomInfo', ({ code, isHost: hostFlag, hostName }) => {
-  isHost = !!hostFlag;
-  updateHostUI();
+socket.on('roomState', ({ hostName, scores, names }) => {
   hostBadge.textContent = isHost ? 'Sos el host' : `Host: ${hostName}`;
   currentHostGame.textContent = `Host: ${hostName}`;
-});
-
-socket.on('roomState', ({ hostName, scores }) => {
+  playersList.innerHTML = '';
+  (names || []).forEach(n => {
+    const li = document.createElement('li');
+    li.textContent = n;
+    playersList.appendChild(li);
+  });
   if (scores) {
     renderScoreboard(scoreLobby, scores);
     renderScoreboard(scoreGame, scores);
   }
-  currentHostGame.textContent = `Host: ${hostName}`;
 });
 
-socket.on('roundStarted', () => resetVotingUI());
+socket.on('roundStarted', () => {
+  resetVotingUI();
+  roleEl.style.display = 'block';
+  revealBtn.style.display = 'inline-block';
+  nextBtn.style.display = 'inline-block';
+});
 
 socket.on('role', ({ word, hostName }) => {
   roleEl.textContent = word;
@@ -263,8 +228,15 @@ socket.on('revealResult', ({ impostorsNames, word }) => {
 });
 
 socket.on('voteStarted', ({ endsAt, players }) => {
+  // Ocultar UI de palabra mientras dura la votación
+  roleEl.style.display = 'none';
+  revealBox.classList.add('hidden');
+  revealBtn.style.display = 'none';
+  nextBtn.style.display = 'none';
+
   votingPanel.classList.remove('hidden');
   voteTargets.innerHTML = '';
+  myVoteEl.textContent = '';
   players.forEach(p => {
     const btn = document.createElement('button');
     btn.className = 'target';
@@ -288,3 +260,6 @@ socket.on('scoreUpdated', ({ scores }) => {
   renderScoreboard(scoreLobby, scores);
   renderScoreboard(scoreGame, scores);
 });
+
+// Start
+showLanding();
