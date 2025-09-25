@@ -138,6 +138,19 @@ socket.on("voteResult", ({ message, impostorFound }) => {
     nextRoundBtn.onclick = () => {
       socket.emit("startRound", { code: currentRoom });
       voteOutcome.classList.add("hidden");
+      game.classList.remove("hidden");
+      nextRoundBtn.classList.add("hidden");
     };
+  } else if (!isHost) {
+    // Los demás jugadores esperan a que el host inicie la siguiente ronda
+    nextRoundBtn.classList.add("hidden");
+  }
+
+  // Si no se descubrió al impostor, todos vuelven automáticamente al juego
+  if (!impostorFound) {
+    setTimeout(() => {
+      voteOutcome.classList.add("hidden");
+      game.classList.remove("hidden");
+    }, 2000);
   }
 });
