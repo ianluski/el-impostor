@@ -110,59 +110,61 @@ io.on("connection", (socket) => {
     if (!room || socket.id !== room.host) return;
     endVote(code);
   });
+function endVote(code) {
+  const room = rooms[code];
+  if (!room || !room.voting?.active) return;
+  room.voting.active = false;
 
-  function endVote(code) {
-    const room = rooms[code];
-    if (!room || !room.voting?.active) return;
-    room.voting.active = false;
+  // contar votos
+  const counts = {};
+  for (const target of Object.values(room.voting.votes)) {
+    counts[target] = (counts[target] || 0) + 1;
+  }
 
-    // contar votos
-    const counts = {};
-    for (const target of Object.values(room.voting.votes)) {
-      counts[target] = (counts[target] || 0) + 1;
+  let max = 0;
+  let top = [];
+  for (const [id, c] of Object.entries(counts)) {
+    if (c > max) {
+      max = c;
+      top = [id];
+    } else if (c === max) {
+      top.push(id);
     }
+  }
 
-    let max = 0;
-    let top = [];
-    for (const [id, c] of Object.entries(counts)) {
-      if (c > max) {
-        max = c;
-        top = [id];
-      } else if (c === max) {
-        top.push(id);
-      }
-    }
+  let message, impostorFound = false;
 
-    let message, impostorFound = false;
-
-    if (top.length !== 1) {
-      message = "No se encontró al impostor. La ronda continúa.";
-    } else {
-      const votedId = top[0];
-      const votedName = room.names[votedId];
-      if (room.impostorIds.includes(votedId)) {
-        message = `${votedName} era el impostor. Ronda terminada.`;
-        impostorFound = true;
-        room.currentWord = null;
-        room.impostorIds = [];
-      } else {
-        // jugador inocente eliminado
-        room.eliminated.push(votedId);
-        message = `${votedName} no era el impostor y fue eliminado. La ronda continúa.`;
-      }
-    }
-
-    // verificar si quedan solo 2 jugadores (incluyendo impostor)
-    const activos = room.ids.filter(id => !room.eliminated.includes(id));
-    if (activos.length <= 2 && !impostorFound) {
-      message = "Quedan 2 jugadores: el impostor gana esta ronda.";
+  if (top.length !== 1) {
+    message = "No se encontró al impostor. La ronda continúa.";
+  } else {
+    const votedId = top[0];
+    const votedName = room.names[votedId];
+    if (room.impostorIds.includes(votedId)) {
+      message = `${votedName} era el impostor. Ronda terminada.`;
       impostorFound = true;
       room.currentWord = null;
       room.impostorIds = [];
+    } else {
+      // jugador inocente eliminado
+      room.eliminated.push(votedId);
+      message = `${votedName} no era el impostor y fue eliminado. La ronda continúa.`;
     }
-
-    io.to(code).emit("voteResult", { message, impostorFound });
   }
+
+  // verificar si quedan solo 2 jugadores (incluyendo impostor)
+  const activos = room.ids.filter(id => !room.eliminated.includes(id));
+  if (activos.length <= 2 && !impostorFound) {
+    const impostorNombres = room.impostorIds.map(id => room.names[id]);
+    const label = impostorNombres.length > 1 ? "Ganaron" : "Ganó";
+    message = `${label} ${impostorNombres.join(", ")}.`;
+    impostorFound = true;
+    room.currentWord = null;
+    room.impostorIds = [];
+  }
+
+  io.to(code).emit("voteResult", { message, impostorFound });
+}
+
 
   socket.on("disconnect", () => {
     for (const [code, room] of Object.entries(rooms)) {
