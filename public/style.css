@@ -1,94 +1,115 @@
-:root {
-  --blur: 20px;
-  --radius: 16px;
-  --shadow: 0 10px 30px rgba(0,0,0,.3);
-  --panel: rgba(255,255,255,0.08);
-  --panel-strong: rgba(255,255,255,0.15);
-  --input-bg: rgba(255,255,255,0.1);
-  --border: 1px solid rgba(255,255,255,0.2);
-  --text: #f8fafc;
-  --muted: #94a3b8;
-  --primary: #3b82f6;
-  --success: #22c55e;
-  --warn: #ef4444;
-}
-
+/* ===== Estilo base ===== */
 body {
-  margin: 0;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: linear-gradient(135deg, #0f172a, #1e293b);
-  color: var(--text);
-  font-family: system-ui, sans-serif;
-}
-
-.hidden { display: none !important; }
-
-.container { width: 100%; max-width: 420px; padding: 10px; }
-
-.card {
-  background: var(--panel);
-  border: var(--border);
-  border-radius: var(--radius);
-  backdrop-filter: blur(var(--blur));
-  -webkit-backdrop-filter: blur(var(--blur));
-  box-shadow: var(--shadow);
-  padding: 22px;
-  text-align: center;
+  color: #fff;
+  min-height: 100vh;
+  margin: 0;
   display: flex;
-  flex-direction: column;
-  gap: 14px;
+  justify-content: center;
+  align-items: center;
 }
 
-h1, h2 { margin: 0; }
+.hidden {
+  display: none !important;
+}
 
-ul { list-style: none; padding: 0; margin: 0; }
-ul li { background: var(--panel-strong); margin: 4px 0; padding: 6px; border-radius: 8px; }
-
-.input {
-  padding: 10px;
-  border-radius: 10px;
-  border: var(--border);
-  background: var(--input-bg);
-  color: var(--text);
+.container {
   width: 100%;
+  max-width: 420px;
+  padding: 1rem;
 }
 
-.btn {
-  padding: 12px;
+/* ===== Tarjetas ===== */
+.card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px) saturate(180%);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  margin: 1rem auto;
+  transition: all 0.3s ease;
+}
+
+h1, h2 {
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+/* ===== Botones ===== */
+.btn,
+.targets button {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  margin: 0.5rem 0;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 500;
   cursor: pointer;
-  font-size: 16px;
+  transition: transform 0.15s ease, background 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Hover con efecto lift */
+.btn:hover,
+.targets button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  filter: brightness(1.1);
+}
+
+/* Tipos de botones */
+.btn.primary {
+  background: #3b82f6;
   color: white;
 }
+.btn.primary:hover {
+  background: #2563eb;
+}
 
-.btn.primary { background: var(--primary); }
-.btn.success { background: var(--success); }
-.btn.warn { background: var(--warn); }
+.btn.success {
+  background: #22c55e;
+  color: white;
+}
+.btn.success:hover {
+  background: #16a34a;
+}
 
-.row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.btn.warn {
+  background: #f97316;
+  color: white;
+}
+.btn.warn:hover {
+  background: #ea580c;
+}
 
+/* ===== Votación ===== */
 .targets {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  margin: 1rem 0;
 }
-.targets button {
-  padding: 10px;
-  border-radius: 8px;
-  border: var(--border);
-  background: var(--panel-strong);
-  color: var(--text);
-  cursor: pointer;
-}
-.targets button.selected { background: var(--primary); color: white; }
 
-/* Botón fijo para votar */
-.vote-fixed {
-  position: sticky;
-  bottom: 0;
-  margin-top: auto;
+.targets button {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 12px;
+}
+
+.targets button.selected {
+  background: rgba(59, 130, 246, 0.9);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
+}
+
+/* ===== Responsivo ===== */
+@media (max-width: 600px) {
+  .card {
+    padding: 1.5rem;
+  }
+
+  .btn {
+    font-size: 0.95rem;
+    padding: 10px 14px;
+  }
 }
