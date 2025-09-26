@@ -1,17 +1,13 @@
-/* ===== Estilo base ===== */
+/* Fondo general */
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: linear-gradient(135deg, #0f172a, #1e293b);
-  color: #fff;
-  min-height: 100vh;
   margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-.hidden {
-  display: none !important;
+  height: 100vh;
+  color: #fff;
 }
 
 .container {
@@ -20,96 +16,108 @@ body {
   padding: 1rem;
 }
 
-/* ===== Tarjetas ===== */
+/* Tarjetas glassmorphism */
 .card {
   background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   text-align: center;
-  margin: 1rem auto;
-  transition: all 0.3s ease;
 }
 
-h1, h2 {
-  margin-bottom: 1rem;
-  font-weight: 600;
+.hidden {
+  display: none;
 }
 
-/* ===== Botones ===== */
-.btn,
-.targets button {
-  display: block;
+/* Inputs */
+.input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 0.8rem;
   margin: 0.5rem 0;
   border: none;
   border-radius: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 1rem;
+  text-align: center;
+  outline: none;
+  backdrop-filter: blur(10px);
+}
+
+/* Botones glassmorphism */
+.btn {
+  display: inline-block;
+  width: 100%;
+  padding: 0.8rem 1.2rem;
+  margin: 0.5rem 0;
   font-size: 1rem;
   font-weight: 500;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.3s ease, box-shadow 0.3s ease;
+  transition: all 0.3s ease;
 }
 
-/* Hover con efecto lift */
-.btn:hover,
-.targets button:hover {
+.btn:hover {
+  background: rgba(255, 255, 255, 0.25);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-  filter: brightness(1.1);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.35);
 }
 
-/* Tipos de botones */
-.btn.primary {
-  background: #3b82f6;
-  color: white;
+.btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.2);
 }
-.btn.primary:hover {
-  background: #2563eb;
+
+.btn.primary {
+  border: 1px solid rgba(0, 123, 255, 0.6);
 }
 
 .btn.success {
-  background: #22c55e;
-  color: white;
-}
-.btn.success:hover {
-  background: #16a34a;
+  border: 1px solid rgba(40, 167, 69, 0.6);
 }
 
 .btn.warn {
-  background: #f97316;
-  color: white;
-}
-.btn.warn:hover {
-  background: #ea580c;
+  border: 1px solid rgba(255, 193, 7, 0.6);
 }
 
-/* ===== Votación ===== */
-.targets {
-  margin: 1rem 0;
+.btn.small {
+  width: auto;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
 }
 
-.targets button {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border-radius: 12px;
+/* Layouts */
+.room-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.targets button.selected {
-  background: rgba(59, 130, 246, 0.9);
-  color: #fff;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
+.room-field .input {
+  flex: 1;
 }
 
-/* ===== Responsivo ===== */
-@media (max-width: 600px) {
-  .card {
-    padding: 1.5rem;
-  }
+.room-field .btn.small {
+  flex-shrink: 0;
+}
 
-  .btn {
-    font-size: 0.95rem;
-    padding: 10px 14px;
-  }
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.muted {
+  font-size: 0.9rem;
+  opacity: 0.7;
 }
