@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="dark">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,56 +8,59 @@
 </head>
 <body>
   <div class="container">
-    <!-- Landing -->
+
+    <!-- Pantalla Inicial -->
     <section id="landing" class="card">
       <h1>⚽ El Impostor</h1>
-      <button id="goCreateBtn" class="btn primary">Crear sala</button>
-      <button id="goJoinBtn" class="btn">Unirse a sala</button>
+      <button id="goCreate" class="btn primary">Crear sala</button>
+      <button id="goJoin" class="btn">Unirse a sala</button>
     </section>
 
     <!-- Lobby -->
     <section id="home" class="card hidden">
       <h2>Lobby</h2>
       <input id="name" class="input" placeholder="Tu nombre">
-      <input id="room" class="input" placeholder="Código de sala">
+
+      <div class="room-field">
+        <input id="room" class="input" placeholder="Código de sala" readonly>
+        <button id="copyRoom" class="btn small">📋</button>
+      </div>
+
       <div class="row">
         <button id="createBtn" class="btn primary">Crear</button>
         <button id="joinBtn" class="btn">Unirse</button>
       </div>
       <button id="startBtn" class="btn success">Iniciar ronda</button>
+
       <div id="status" class="muted">Jugadores en sala: 0</div>
       <ul id="playersList"></ul>
     </section>
 
-    <!-- Juego -->
+    <!-- Pantalla de Juego -->
     <section id="game" class="card hidden">
-      <div id="currentHostGame" class="muted">Host: —</div>
-      <h2 id="role">—</h2>
+      <h2 id="wordDisplay">Tu palabra aparecerá aquí</h2>
       <div class="row">
-        <button id="startVoteBtn" class="btn primary">Iniciar votación</button>
-        <button id="nextBtn" class="btn">Siguiente ronda</button>
-        <button id="backBtn" class="btn warn">Salir</button>
-      </div>
-    </section>
-
-    <!-- Pantalla de votación -->
-    <section id="voteScreen" class="card hidden">
-      <h2>Votación</h2>
-      <p class="muted">Selecciona a un jugador y confirma tu voto</p>
-      <div id="voteTargets" class="targets"></div>
-      <button id="voteBtn" class="btn primary vote-fixed" disabled>Votar</button>
-    </section>
-
-    <!-- Resultado de votación -->
-    <section id="voteOutcome" class="card hidden">
-      <h2>Resultado</h2>
-      <p id="voteMessage"></p>
-      <div class="row">
+        <button id="voteBtn" class="btn primary">Iniciar votación</button>
         <button id="nextRoundBtn" class="btn success hidden">Siguiente ronda</button>
+        <button id="exitBtn" class="btn warn">Salir</button>
       </div>
     </section>
-  </div>
 
+    <!-- Pantalla de Votación -->
+    <section id="voting" class="card hidden">
+      <h2>Votación</h2>
+      <p>Selecciona a un jugador y confirma tu voto</p>
+      <div id="voteOptions"></div>
+      <button id="confirmVoteBtn" class="btn primary">Votar</button>
+    </section>
+
+    <!-- Pantalla de Resultado -->
+    <section id="result" class="card hidden">
+      <h2>Resultado</h2>
+      <p id="resultText"></p>
+    </section>
+
+  </div>
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
 </body>
