@@ -20,7 +20,7 @@ body {
 .card {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
+  border-radius: 24px;
   padding: 2rem;
   backdrop-filter: blur(15px) saturate(180%);
   -webkit-backdrop-filter: blur(15px) saturate(180%);
@@ -35,10 +35,10 @@ body {
 /* Inputs */
 .input {
   width: 100%;
-  padding: 0.8rem;
-  margin: 0.5rem 0;
+  padding: 0.9rem;
+  margin: 0.6rem 0;
   border: none;
-  border-radius: 12px;
+  border-radius: 50px; /* 100% redondeado */
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
   font-size: 1rem;
@@ -47,18 +47,22 @@ body {
   backdrop-filter: blur(10px);
 }
 
+.input.readonly {
+  cursor: default;
+}
+
 /* Botones glassmorphism */
 .btn {
   display: inline-block;
   width: 100%;
-  padding: 0.8rem 1.2rem;
-  margin: 0.5rem 0;
+  padding: 0.9rem 1.4rem;
+  margin: 0.6rem 0;
   font-size: 1rem;
   font-weight: 500;
   color: #fff;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
+  border-radius: 50px; /* 100% redondeado */
   backdrop-filter: blur(12px) saturate(180%);
   -webkit-backdrop-filter: blur(12px) saturate(180%);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
@@ -91,9 +95,10 @@ body {
 
 .btn.small {
   width: auto;
-  padding: 0.4rem 0.6rem;
+  padding: 0.4rem 0.8rem;
   font-size: 0.9rem;
   margin-left: 0.5rem;
+  border-radius: 50px;
 }
 
 /* Layouts */
@@ -101,23 +106,28 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.room-field .input {
-  flex: 1;
-}
-
-.room-field .btn.small {
-  flex-shrink: 0;
+  gap: 0.5rem;
 }
 
 .row {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 0.5rem;
 }
 
 .muted {
   font-size: 0.9rem;
   opacity: 0.7;
+  margin-top: 1rem;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+}
+
+ul li {
+  margin: 0.3rem 0;
+  font-size: 0.95rem;
 }
