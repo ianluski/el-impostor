@@ -19,17 +19,16 @@
     <!-- Lobby -->
     <section id="home" class="card hidden">
       <h2>Lobby</h2>
+
       <input id="name" class="input" placeholder="Tu nombre">
 
       <div class="room-field">
-        <input id="room" class="input" placeholder="Código de sala" readonly>
+        <input id="room" class="input readonly" placeholder="Código de sala" readonly>
         <button id="copyRoom" class="btn small">📋</button>
       </div>
 
-      <div class="row">
-        <button id="createBtn" class="btn primary">Crear</button>
-        <button id="joinBtn" class="btn">Unirse</button>
-      </div>
+      <button id="createBtn" class="btn primary">Crear</button>
+      <button id="joinBtn" class="btn">Unirse</button>
       <button id="startBtn" class="btn success">Iniciar ronda</button>
 
       <div id="status" class="muted">Jugadores en sala: 0</div>
