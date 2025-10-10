@@ -1,133 +1,71 @@
-/* Fondo general */
-body {
-  margin: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  color: #fff;
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;color:#fff;background:#000;
+  font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+  min-height:100dvh;display:grid;place-items:center;
+  padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right))
+          max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
 }
+.hidden{display:none!important}
+.container{width:100%;max-width:520px;padding:0 12px;margin:0 auto}
 
-.container {
-  width: 100%;
-  max-width: 420px;
-  padding: 1rem;
+.card{
+  width:100%;margin:0 auto;text-align:center;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:24px;padding:24px;
+  backdrop-filter:blur(18px) saturate(180%);
+  -webkit-backdrop-filter:blur(18px) saturate(180%);
+  box-shadow:0 12px 40px rgba(0,0,0,.5);
 }
+h1,h2{margin:0 0 16px;font-weight:600}
 
-/* Tarjetas glassmorphism */
-.card {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 24px;
-  padding: 2rem;
-  backdrop-filter: blur(15px) saturate(180%);
-  -webkit-backdrop-filter: blur(15px) saturate(180%);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  text-align: center;
+.input,.btn,.copy-btn,#voteOptions button{width:100%;border-radius:9999px}
+.input{
+  padding:14px 18px;margin:8px 0;border:none;outline:none;text-align:center;
+  color:#fff;background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.18);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
 }
+.input.select-like{text-align-last:center;-moz-text-align-last:center;appearance:none}
 
-.hidden {
-  display: none;
+.textarea{border-radius:18px;text-align:left}
+
+.btn{
+  display:inline-block;padding:14px 18px;margin:8px 0;font-size:16px;font-weight:600;color:#fff;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);
+  backdrop-filter:blur(12px) saturate(180%);-webkit-backdrop-filter:blur(12px) saturate(180%);
+  box-shadow:0 6px 22px rgba(0,0,0,.35);cursor:pointer;
+  transition:transform .15s ease,box-shadow .25s ease,background .25s ease,filter .25s ease
 }
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,.45);filter:brightness(1.06)}
+.btn:active{transform:scale(.98)}
+.btn.primary{border-color:rgba(0,123,255,.65)}
+.btn.success{border-color:rgba(40,167,69,.65)}
+.btn.warn{border-color:rgba(255,193,7,.7)}
+.btn.small{width:auto;padding:10px 14px;margin-left:8px}
 
-/* Inputs */
-.input {
-  width: 100%;
-  padding: 0.9rem;
-  margin: 0.6rem 0;
-  border: none;
-  border-radius: 50px; /* 100% redondeado */
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-  font-size: 1rem;
-  text-align: center;
-  outline: none;
-  backdrop-filter: blur(10px);
-}
+.room-field{display:grid;grid-template-columns:1fr 56px;gap:10px;align-items:center;margin:8px 0}
+.copy-btn{height:48px;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14)}
 
-.input.readonly {
-  cursor: default;
-}
+.settings{margin-top:10px;text-align:left}
+.settings-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.block{display:block;margin:8px 0 4px;font-size:.95rem;opacity:.85}
 
-/* Botones glassmorphism */
-.btn {
-  display: inline-block;
-  width: 100%;
-  padding: 0.9rem 1.4rem;
-  margin: 0.6rem 0;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50px; /* 100% redondeado */
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
+.row{display:flex;flex-direction:column;gap:10px;align-items:stretch;justify-content:center}
+.muted{opacity:.8;font-size:.95rem}
 
-.btn:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.35);
-}
+ul{list-style:none;margin:8px 0 0;padding:0}
+ul li{margin:4px 0;opacity:.9}
 
-.btn:active {
-  transform: scale(0.97);
-  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.2);
-}
+#voteOptions{display:grid;gap:10px;margin:12px 0}
+#voteOptions button{padding:12px 16px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;box-shadow:0 6px 22px rgba(0,0,0,.35);cursor:pointer;transition:transform .15s ease,filter .25s ease}
+#voteOptions button:hover{transform:translateY(-2px);filter:brightness(1.06)}
+#voteOptions button.selected{background:rgba(59,130,246,.9);border-color:rgba(59,130,246,1);box-shadow:0 0 16px rgba(59,130,246,.6)}
 
-.btn.primary {
-  border: 1px solid rgba(0, 123, 255, 0.6);
-}
-
-.btn.success {
-  border: 1px solid rgba(40, 167, 69, 0.6);
-}
-
-.btn.warn {
-  border: 1px solid rgba(255, 193, 7, 0.6);
-}
-
-.btn.small {
-  width: auto;
-  padding: 0.4rem 0.8rem;
-  font-size: 0.9rem;
-  margin-left: 0.5rem;
-  border-radius: 50px;
-}
-
-/* Layouts */
-.room-field {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.muted {
-  font-size: 0.9rem;
-  opacity: 0.7;
-  margin-top: 1rem;
-}
-
-ul {
-  list-style: none;
-  padding: 0;
-  margin: 0.5rem 0 0;
-}
-
-ul li {
-  margin: 0.3rem 0;
-  font-size: 0.95rem;
+@media (max-width:460px){
+  .card{padding:20px}
+  .room-field{grid-template-columns:1fr 50px}
+  .copy-btn{height:44px}
 }
