@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="color-scheme" content="dark" />
   <title>El Impostor</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
@@ -20,11 +22,12 @@
     <section id="home" class="card hidden">
       <h2>Lobby</h2>
 
-      <input id="name" class="input" placeholder="Tu nombre">
+      <input id="name" class="input" placeholder="Tu nombre" />
 
       <div class="room-field">
-        <input id="room" class="input readonly" placeholder="Código de sala" readonly>
-        <button id="copyRoom" class="btn small">📋</button>
+        <!-- IMPORTANTE: ya no tiene readonly por defecto -->
+        <input id="room" class="input" placeholder="Código de sala" />
+        <button id="copyRoom" class="btn small copy-btn" title="Copiar código">📋</button>
       </div>
 
       <button id="createBtn" class="btn primary">Crear</button>
@@ -35,7 +38,7 @@
       <ul id="playersList"></ul>
     </section>
 
-    <!-- Pantalla de Juego -->
+    <!-- Juego -->
     <section id="game" class="card hidden">
       <h2 id="wordDisplay">Tu palabra aparecerá aquí</h2>
       <div class="row">
@@ -45,7 +48,7 @@
       </div>
     </section>
 
-    <!-- Pantalla de Votación -->
+    <!-- Votación -->
     <section id="voting" class="card hidden">
       <h2>Votación</h2>
       <p>Selecciona a un jugador y confirma tu voto</p>
@@ -53,13 +56,14 @@
       <button id="confirmVoteBtn" class="btn primary">Votar</button>
     </section>
 
-    <!-- Pantalla de Resultado -->
+    <!-- Resultado -->
     <section id="result" class="card hidden">
       <h2>Resultado</h2>
       <p id="resultText"></p>
     </section>
 
   </div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
 </body>
