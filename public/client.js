@@ -3,68 +3,106 @@ const socket = io();
 let playerName = "";
 let roomCode = "";
 let isHost = false;
+let mode = null; // 'create' | 'join'
 
-// Navegación entre pantallas
+// Secciones
 const landing = document.getElementById("landing");
 const home = document.getElementById("home");
 const game = document.getElementById("game");
 const voting = document.getElementById("voting");
 const result = document.getElementById("result");
 
-// Inputs y botones
+// Inputs / UI
 const nameInput = document.getElementById("name");
 const roomInput = document.getElementById("room");
 const copyRoomBtn = document.getElementById("copyRoom");
 const playersList = document.getElementById("playersList");
+const statusEl = document.getElementById("status");
 
 // Botones landing
 document.getElementById("goCreate").onclick = () => {
+  mode = "create";
   landing.classList.add("hidden");
   home.classList.remove("hidden");
+
+  // En crear sala: el código lo pone el server -> readOnly y botón copiar visible
+  roomInput.value = "";
+  roomInput.placeholder = "Código de sala";
+  roomInput.readOnly = true;
+  copyRoomBtn.style.display = "inline-flex";
 };
 
 document.getElementById("goJoin").onclick = () => {
+  mode = "join";
   landing.classList.add("hidden");
   home.classList.remove("hidden");
+
+  // En unirse: se debe escribir el código -> editable y ocultar copiar
+  roomInput.value = "";
+  roomInput.placeholder = "Código de sala (ej: ABCD)";
+  roomInput.readOnly = false;
+  roomInput.focus();
+  copyRoomBtn.style.display = "none";
 };
 
-// Copiar código de sala
+// Copiar código (solo cuando existe)
 copyRoomBtn.onclick = () => {
+  if (!roomInput.value) return;
   navigator.clipboard.writeText(roomInput.value);
   alert("Código copiado: " + roomInput.value);
 };
 
 // Crear sala
 document.getElementById("createBtn").onclick = () => {
-  playerName = nameInput.value.trim();
+  if (mode !== "create") {
+    alert("Primero elige 'Crear sala'.");
+    return;
+  }
+  playerName = (nameInput.value || "").trim();
   if (!playerName) return alert("Ingresa tu nombre");
   socket.emit("createRoom", playerName);
 };
 
 // Unirse a sala
 document.getElementById("joinBtn").onclick = () => {
-  playerName = nameInput.value.trim();
+  if (mode !== "join") {
+    alert("Primero elige 'Unirse a sala'.");
+    return;
+  }
+  playerName = (nameInput.value || "").trim();
   if (!playerName) return alert("Ingresa tu nombre");
-  const code = prompt("Ingresa el código de la sala:");
-  if (!code) return;
+
+  const code = (roomInput.value || "").trim().toUpperCase();
+  if (!code || code.length < 4) return alert("Ingresa un código válido (4+ caracteres)");
+
   roomCode = code;
   socket.emit("joinRoom", { playerName, roomCode });
 };
 
-// Iniciar juego
+// Iniciar ronda (host)
 document.getElementById("startBtn").onclick = () => {
-  if (isHost) socket.emit("startGame", roomCode);
+  if (!isHost) return alert("Solo el host puede iniciar la ronda");
+  socket.emit("startGame", roomCode);
 };
 
-// Eventos del servidor
+// BOTONES DE JUEGO (tu lógica aquí según tu server real)
+document.getElementById("exitBtn").onclick = () => location.reload();
+
+// ====== Eventos del servidor (estos coinciden con el server simple de ejemplo) ======
 socket.on("roomCreated", (code) => {
+  // Llega el código desde el servidor
   roomCode = code;
-  roomInput.value = code;
   isHost = true;
+  roomInput.value = code;
+
+  // Aseguramos estado de UI correcto para crear
+  roomInput.readOnly = true;
+  copyRoomBtn.style.display = "inline-flex";
 });
 
 socket.on("updatePlayers", (players) => {
   playersList.innerHTML = players.map(p => `<li>${p}</li>`).join("");
+  statusEl.textContent = `Jugadores en sala: ${players.length}`;
 });
 
 socket.on("gameStarted", (word) => {
