@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#000000" />
-  <meta name="color-scheme" content="dark" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#000000"/>
+  <meta name="color-scheme" content="dark"/>
   <title>El Impostor</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
   <div class="container">
 
-    <!-- Pantalla Inicial -->
+    <!-- Landing -->
     <section id="landing" class="card">
       <h1>⚽ El Impostor</h1>
       <button id="goCreate" class="btn primary">Crear sala</button>
@@ -22,12 +22,30 @@
     <section id="home" class="card hidden">
       <h2>Lobby</h2>
 
-      <input id="name" class="input" placeholder="Tu nombre" />
+      <input id="name" class="input" placeholder="Tu nombre"/>
 
       <div class="room-field">
-        <!-- IMPORTANTE: ya no tiene readonly por defecto -->
-        <input id="room" class="input" placeholder="Código de sala" />
-        <button id="copyRoom" class="btn small copy-btn" title="Copiar código">📋</button>
+        <input id="room" class="input" placeholder="Código de sala"/>
+        <button id="copyRoom" class="btn small copy-btn" title="Copiar">📋</button>
+      </div>
+
+      <!-- Ajustes (solo host edita; visibles para todos) -->
+      <div class="settings">
+        <div class="settings-row">
+          <label>Impostores:
+            <select id="impostorCount" class="input select-like">
+              <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+            </select>
+          </label>
+          <label>Tiempo de votación (s):
+            <input id="voteSeconds" type="number" min="10" max="300" value="30" class="input"/>
+          </label>
+        </div>
+
+        <label class="block">Lista personalizada (uno por línea o separada por comas) — solo host</label>
+        <textarea id="customList" rows="4" class="input textarea"></textarea>
+
+        <button id="applySettings" class="btn">Aplicar configuración</button>
       </div>
 
       <button id="createBtn" class="btn primary">Crear</button>
@@ -40,10 +58,10 @@
 
     <!-- Juego -->
     <section id="game" class="card hidden">
-      <h2 id="wordDisplay">Tu palabra aparecerá aquí</h2>
+      <div id="hostBadge" class="muted">Host: —</div>
+      <h2 id="wordDisplay">—</h2>
       <div class="row">
-        <button id="voteBtn" class="btn primary">Iniciar votación</button>
-        <button id="nextRoundBtn" class="btn success hidden">Siguiente ronda</button>
+        <button id="btnStartVote" class="btn primary">Iniciar votación</button>
         <button id="exitBtn" class="btn warn">Salir</button>
       </div>
     </section>
@@ -51,15 +69,16 @@
     <!-- Votación -->
     <section id="voting" class="card hidden">
       <h2>Votación</h2>
-      <p>Selecciona a un jugador y confirma tu voto</p>
+      <p class="muted">Tiempo restante: <span id="voteTimer">—</span></p>
       <div id="voteOptions"></div>
-      <button id="confirmVoteBtn" class="btn primary">Votar</button>
+      <button id="confirmVoteBtn" class="btn primary" disabled>Votar</button>
     </section>
 
     <!-- Resultado -->
     <section id="result" class="card hidden">
       <h2>Resultado</h2>
       <p id="resultText"></p>
+      <button id="nextRoundHostBtn" class="btn success hidden">Siguiente ronda</button>
     </section>
 
   </div>
