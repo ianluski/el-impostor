@@ -29,8 +29,8 @@
         <button id="copyRoom" class="btn small copy-btn" title="Copiar">📋</button>
       </div>
 
-      <!-- Ajustes (solo host edita; visibles para todos) -->
-      <div class="settings">
+      <!-- Ajustes (solo host / solo modo crear) -->
+      <div id="settings" class="settings">
         <div class="settings-row">
           <label>Impostores:
             <select id="impostorCount" class="input select-like">
@@ -48,9 +48,12 @@
         <button id="applySettings" class="btn">Aplicar configuración</button>
       </div>
 
-      <button id="createBtn" class="btn primary">Crear</button>
-      <button id="joinBtn" class="btn">Unirse</button>
-      <button id="startBtn" class="btn success">Iniciar ronda</button>
+      <!-- Controles según modo -->
+      <div id="controls" class="row">
+        <button id="createBtn" class="btn primary">Crear</button>
+        <button id="joinBtn" class="btn">Unirse</button>
+        <button id="startBtn" class="btn success">Iniciar ronda</button>
+      </div>
 
       <div id="status" class="muted">Jugadores en sala: 0</div>
       <ul id="playersList"></ul>
