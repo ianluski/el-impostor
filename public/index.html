@@ -48,7 +48,7 @@
         <button id="applySettings" class="btn">Aplicar configuración</button>
       </div>
 
-      <!-- Controles según modo -->
+      <!-- Controles -->
       <div id="controls" class="row">
         <button id="createBtn" class="btn primary">Crear</button>
         <button id="joinBtn" class="btn">Unirse</button>
@@ -62,7 +62,12 @@
     <!-- Juego -->
     <section id="game" class="card hidden">
       <div id="hostBadge" class="muted">Host: —</div>
-      <h2 id="wordDisplay">—</h2>
+
+      <div class="word-row">
+        <h2 id="wordDisplay">—</h2>
+        <button id="toggleHideBtn" class="icon-btn" title="Ocultar/Mostrar">👁</button>
+      </div>
+
       <div class="row">
         <button id="btnStartVote" class="btn primary">Iniciar votación</button>
         <button id="exitBtn" class="btn warn">Salir</button>
