@@ -25,6 +25,12 @@ const applySettings = document.getElementById("applySettings");
 const playersList = document.getElementById("playersList");
 const statusEl = document.getElementById("status");
 
+// Contenedores para mostrar/ocultar
+const settingsBox = document.getElementById("settings");
+const createBtn = document.getElementById("createBtn");
+const joinBtn = document.getElementById("joinBtn");
+const startBtn = document.getElementById("startBtn");
+
 // UI juego
 const hostBadge = document.getElementById("hostBadge");
 const wordDisplay = document.getElementById("wordDisplay");
@@ -39,30 +45,59 @@ const confirmVoteBtn = document.getElementById("confirmVoteBtn");
 const resultText = document.getElementById("resultText");
 const nextRoundHostBtn = document.getElementById("nextRoundHostBtn");
 
-/* ---------- Navegación inicial ---------- */
-document.getElementById("goCreate").onclick = () => {
+/* ---------- Helpers de UI ---------- */
+function setModeCreate() {
   mode = "create";
   landing.classList.add("hidden");
   home.classList.remove("hidden");
 
-  // crear: código lo da el server -> readonly y copiar visible
+  // Código lo da el server -> readonly + botón copiar
   roomInput.value = "";
   roomInput.placeholder = "Código de sala";
   roomInput.readOnly = true;
   copyRoomBtn.style.display = "inline-flex";
-};
-document.getElementById("goJoin").onclick = () => {
+
+  // Mostrar solo controles de crear + configuraciones host
+  settingsBox.classList.remove("hidden");
+  createBtn.classList.remove("hidden");
+  startBtn.classList.remove("hidden");
+  joinBtn.classList.add("hidden");
+}
+
+function setModeJoin() {
   mode = "join";
   landing.classList.add("hidden");
   home.classList.remove("hidden");
 
-  // unirse: editable y sin copiar
+  // Editable + sin botón copiar
   roomInput.value = "";
   roomInput.placeholder = "Código de sala (ej: ABCD)";
   roomInput.readOnly = false;
   copyRoomBtn.style.display = "none";
   roomInput.focus();
-};
+
+  // Ocultar configuraciones y controles de host
+  settingsBox.classList.add("hidden");
+  createBtn.classList.add("hidden");
+  startBtn.classList.add("hidden");
+  joinBtn.classList.remove("hidden");
+}
+
+function hydrateSettings({ impostors, voteSeconds: secs }) {
+  impostorCount.value = String(impostors || 1);
+  voteSeconds.value = String(secs || 30);
+
+  // Los inputs de settings solo se habilitan si sos host y estás en modo crear
+  const disabled = !(isHost && mode === "create");
+  impostorCount.disabled = disabled;
+  voteSeconds.disabled = disabled;
+  customList.disabled = disabled;
+  applySettings.disabled = disabled;
+}
+
+/* ---------- Navegación inicial ---------- */
+document.getElementById("goCreate").onclick = setModeCreate;
+document.getElementById("goJoin").onclick = setModeJoin;
 
 /* ---------- Acciones lobby ---------- */
 copyRoomBtn.onclick = () => {
@@ -71,26 +106,27 @@ copyRoomBtn.onclick = () => {
   alert("Código copiado: " + roomInput.value);
 };
 
-document.getElementById("createBtn").onclick = () => {
+createBtn.onclick = () => {
   if (mode !== "create") return alert("Elegí 'Crear sala'.");
   playerName = (nameInput.value || "").trim();
   if (!playerName) return alert("Ingresa tu nombre");
   socket.emit("createRoom", playerName);
 };
 
-document.getElementById("joinBtn").onclick = () => {
+joinBtn.onclick = () => {
   if (mode !== "join") return alert("Elegí 'Unirse a sala'.");
   playerName = (nameInput.value || "").trim();
   if (!playerName) return alert("Ingresa tu nombre");
+
   const code = (roomInput.value || "").trim().toUpperCase();
   if (code.length < 4) return alert("Código inválido");
   roomCode = code;
   socket.emit("joinRoom", { playerName, roomCode });
 };
 
-// Guardar ajustes (solo host puede editar, pero todos ven los valores)
+// Guardar ajustes (solo host+crear)
 applySettings.onclick = () => {
-  if (!isHost) return alert("Solo el host puede cambiar la configuración.");
+  if (!(isHost && mode === "create")) return alert("Solo el host puede cambiar la configuración.");
   socket.emit("saveSettings", {
     code: roomCode,
     impostors: impostorCount.value,
@@ -99,10 +135,10 @@ applySettings.onclick = () => {
   });
 };
 
-// Iniciar ronda
-document.getElementById("startBtn").onclick = () => {
-  if (!isHost) return alert("Solo el host puede iniciar.");
-  // por si el host olvidó aplicar, lo enviamos igual
+// Iniciar ronda (host+crear)
+startBtn.onclick = () => {
+  if (!(isHost && mode === "create")) return alert("Solo el host puede iniciar.");
+  // asegurar que settings actuales estén aplicados
   socket.emit("saveSettings", {
     code: roomCode,
     impostors: impostorCount.value,
@@ -172,7 +208,7 @@ socket.on("voteStarted", ({ players, duration, endsAt }) => {
   result.classList.add("hidden");
   voting.classList.remove("hidden");
 
-  // Construir opciones
+  // opciones
   voteOptions.innerHTML = "";
   selectedTarget = null;
   confirmVoteBtn.disabled = true;
@@ -210,7 +246,6 @@ socket.on("voteResult", ({ message, impostorFound }) => {
   if (isHost && impostorFound) {
     nextRoundHostBtn.classList.remove("hidden");
   } else {
-    // los demás vuelven solos al juego
     setTimeout(() => {
       result.classList.add("hidden");
       game.classList.remove("hidden");
@@ -218,16 +253,3 @@ socket.on("voteResult", ({ message, impostorFound }) => {
     }, 2500);
   }
 });
-
-/* ---------- helpers ---------- */
-function hydrateSettings({ impostors, voteSeconds: secs }) {
-  impostorCount.value = String(impostors || 1);
-  voteSeconds.value = String(secs || 30);
-
-  // habilitar/inhabilitar controles según rol
-  const disabled = !isHost;
-  impostorCount.disabled = disabled;
-  voteSeconds.disabled = disabled;
-  customList.disabled = disabled;
-  applySettings.disabled = disabled;
-}
